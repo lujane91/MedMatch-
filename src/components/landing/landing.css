@@ -995,6 +995,184 @@
   }
 }
 
+/* ——— Journey story (landing only) ——— */
+.landing-journey-title {
+  text-align: center;
+}
+
+@media (min-width: 1024px) {
+  .landing-journey-title {
+    text-align: left;
+  }
+}
+
+.landing-journey-lead {
+  margin-top: 1rem;
+  max-width: 28rem;
+  text-align: center;
+}
+
+@media (min-width: 1024px) {
+  .landing-journey-lead {
+    text-align: left;
+  }
+}
+
+.landing-journey-track {
+  display: grid;
+  gap: 0.75rem;
+  margin: 2rem 0 0;
+  padding: 0 0 0 0.25rem;
+  list-style: none;
+}
+
+@media (max-width: 1023px) {
+  .landing-journey-track {
+    gap: 0.875rem;
+    padding-left: 1.15rem;
+    border-left: 2px solid rgba(31, 166, 160, 0.22);
+    margin-left: 0.7rem;
+  }
+
+  .landing-journey-step {
+    position: relative;
+  }
+
+  .landing-journey-step::before {
+    content: "";
+    position: absolute;
+    top: 1.35rem;
+    left: -1.32rem;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    background: var(--lp-teal);
+    box-shadow: 0 0 0 4px #eefaf9;
+  }
+}
+
+.landing-journey-step {
+  position: relative;
+  min-width: 0;
+}
+
+.landing-journey-card {
+  height: 100%;
+  padding: 1.125rem 1.25rem;
+}
+
+.landing-journey-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.landing-journey-icon {
+  display: inline-flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid #e8edf2;
+  background: #f8fafc;
+  color: var(--lp-teal);
+}
+
+.landing-journey-index {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: rgba(14, 58, 93, 0.05);
+}
+
+.landing-journey-services {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.landing-journey-service {
+  padding: 1.25rem 1.25rem 1.375rem;
+}
+
+.landing-profile-preview {
+  margin-top: 1.75rem;
+  padding: 1.25rem 1.25rem 1.375rem;
+}
+
+.landing-profile-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.landing-profile-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  border: 1px solid #e8edf2;
+  border-radius: 999px;
+  background: #f8fafc;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--lp-navy);
+}
+
+@media (min-width: 768px) {
+  .landing-journey-services {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.875rem;
+  }
+
+  .landing-profile-preview {
+    padding: 1.5rem 1.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .landing-journey-track {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-left: 0;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .landing-journey-step::before {
+    content: none;
+  }
+
+  .landing-journey-step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 2.05rem;
+    right: -0.5rem;
+    z-index: 1;
+    width: 0.75rem;
+    height: 2px;
+    background: rgba(31, 166, 160, 0.35);
+    pointer-events: none;
+  }
+}
+
+@media (min-width: 1280px) {
+  .landing-journey-track {
+    gap: 1rem;
+  }
+
+  .landing-journey-step:not(:last-child)::after {
+    right: -0.625rem;
+    width: 1rem;
+  }
+}
+
 .landing-btn-light {
   background: #fff;
   color: var(--lp-navy);

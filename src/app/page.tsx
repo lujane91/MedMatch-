@@ -9,6 +9,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { InstitutionLogo } from "@/components/landing/InstitutionLogo";
+import { JourneyStory } from "@/components/landing/JourneyStory";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { SectionHeader } from "@/components/landing/SectionHeader";
@@ -150,15 +151,13 @@ export default function HomePage() {
           <div className="landing-hero-main">
             <div className="landing-fade-up landing-hero-copy">
               <h1 className="landing-h1">
-                Healthcare <span className="landing-h1-accent">Training</span>,
+                Your Medical <span className="landing-h1-accent">Journey</span>.
                 <br />
-                Simplified.
+                All in One Place.
               </h1>
               <p className="landing-lead landing-hero-lead">
-                MedJourney helps healthcare students and graduates discover
-                verified clinical training opportunities, submit applications with
-                confidence, and manage every step of their training journey, from
-                application to placement.
+                Training, research, conferences and career opportunities
+                throughout your medical journey.
               </p>
             </div>
             <div className="landing-fade-up landing-delay-1 landing-hero-ctas">
@@ -189,6 +188,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <JourneyStory />
 
       {/* Institutions */}
       <section id="institutions" className="bg-white">
