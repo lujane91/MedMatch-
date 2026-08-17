@@ -7,17 +7,16 @@ const columns = [
     links: [
       { label: "About MedJourney", href: "#about" },
       { label: "Institutions", href: "#institutions" },
-      { label: "Careers", href: "#contact" },
       { label: "Contact", href: "#contact" },
     ],
   },
   {
     title: "Features",
     links: [
-      { label: "Smart Matching", href: "#features" },
-      { label: "Applications", href: "#features" },
-      { label: "Profile Strength", href: "#features" },
-      { label: "Notifications", href: "#features" },
+      { label: "Training", href: "#features" },
+      { label: "Conferences", href: "#features" },
+      { label: "Research", href: "#features" },
+      { label: "Career Opportunities", href: "#features" },
     ],
   },
   {
@@ -50,8 +49,8 @@ export function LandingFooter() {
               Med<span className="text-[#1FA6A0]">Journey</span>
             </Link>
             <p className="landing-body mt-4 max-w-[17rem] text-[0.9375rem]">
-              Connecting healthcare talent with clinical training opportunities
-              across Saudi Arabia.
+              Training, research, conferences and career opportunities in one
+              place.
             </p>
             <div className="mt-6 flex items-center gap-2.5">
               {[

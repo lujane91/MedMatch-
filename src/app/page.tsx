@@ -1,12 +1,13 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  Bookmark,
-  ClipboardList,
+  Briefcase,
+  CalendarDays,
+  FlaskConical,
+  GraduationCap,
   LineChart,
   Search,
-  Sparkles,
-  UserRound,
+  Users,
 } from "lucide-react";
 import { InstitutionLogo } from "@/components/landing/InstitutionLogo";
 import { JourneyStory } from "@/components/landing/JourneyStory";
@@ -83,51 +84,49 @@ const steps = [
   {
     title: "Discover",
     description:
-      "Search electives, observerships, and clinical attachments matched to your specialty.",
+      "Find training, research, conferences and career opportunities.",
     icon: Search,
   },
   {
-    title: "Apply",
+    title: "Connect",
     description:
-      "Submit with one reusable profile and apply to multiple institutions with clarity.",
-    icon: ClipboardList,
+      "Apply, collaborate and connect with institutions and professionals.",
+    icon: Users,
   },
   {
-    title: "Track",
+    title: "Grow",
     description:
-      "Follow interviews, timelines, and offers in a single workspace.",
+      "Build your verified journey as your medical career progresses.",
     icon: LineChart,
   },
 ];
 
 const features = [
   {
-    id: "smart-matching",
-    title: "Smart Matching",
+    id: "training",
+    title: "Training",
     description:
-      "Find opportunities based on specialty, training level, city, and career goals.",
-    icon: Sparkles,
+      "Discover opportunities from medical school through fellowship.",
+    icon: GraduationCap,
   },
   {
-    id: "one-profile",
-    title: "One Profile",
-    description:
-      "Create one professional profile and use it across multiple applications.",
-    icon: UserRound,
+    id: "conferences",
+    title: "Conferences",
+    description: "Find medical conferences locally and internationally.",
+    icon: CalendarDays,
   },
   {
-    id: "application-tracking",
-    title: "Application Tracking",
+    id: "research",
+    title: "Research",
     description:
-      "Track submitted applications, updates, interviews, and offers in one place.",
-    icon: ClipboardList,
+      "Discover research opportunities, share ideas and find collaborators.",
+    icon: FlaskConical,
   },
   {
-    id: "saved-opportunities",
-    title: "Saved Opportunities",
-    description:
-      "Save programs and return to them when you are ready to apply.",
-    icon: Bookmark,
+    id: "career-opportunities",
+    title: "Career Opportunities",
+    description: "Explore opportunities based on your stage and specialty.",
+    icon: Briefcase,
   },
 ];
 
@@ -197,7 +196,7 @@ export default function HomePage() {
           <SectionHeader
             title="Institutions"
             subtitle="Trusted by Saudi Arabia's leading healthcare institutions."
-            description="Discover training opportunities from hospitals and universities across the Kingdom."
+            description="Discover opportunities from hospitals and universities across the Kingdom."
           />
 
           <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
@@ -224,8 +223,8 @@ export default function HomePage() {
         <div className="landing-container">
           <SectionHeader
             title="How It Works"
-            subtitle="Three simple steps from discovery to offer."
-            description="Create your profile, discover opportunities, and apply with confidence."
+            subtitle="One profile. Your whole medical journey."
+            description="Discover opportunities, connect and grow throughout your journey."
           />
 
           <div className="mt-8 grid gap-3 sm:mt-9 lg:grid-cols-3 lg:gap-3.5">
@@ -260,8 +259,7 @@ export default function HomePage() {
         <div className="landing-container landing-section">
           <SectionHeader
             title="Features"
-            subtitle="Built for modern healthcare careers."
-            description="Every surface is designed to reduce friction for physicians and institutions."
+            subtitle="Everything for your medical journey."
           />
 
           <div className="mt-10 grid gap-3 sm:mt-12 sm:grid-cols-2 sm:gap-4">
@@ -293,8 +291,8 @@ export default function HomePage() {
         <div className="landing-container landing-section">
           <SectionHeader
             title="About"
-            subtitle="A clearer path into clinical training."
-            description="MedJourney was built for healthcare graduates who need more than a job board—structured matching, reusable profiles, and a single place to follow applications across Saudi institutions."
+            subtitle="Built for every stage of your medical journey."
+            description="MedJourney brings training, research, conferences and career opportunities together in one place."
           />
         </div>
       </section>
@@ -314,8 +312,8 @@ export default function HomePage() {
             <div className="relative mx-auto max-w-3xl">
               <SectionHeader
                 title="Get Started"
-                subtitle="Ready to start your healthcare journey?"
-                description="Create your MedJourney profile, discover aligned training roles, and move through applications with clarity."
+                subtitle="Start your MedJourney"
+                description="Build your profile and discover what comes next."
                 onDark
               />
               <div className="mt-8 flex justify-center">
