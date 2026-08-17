@@ -1,0 +1,240 @@
+/**
+ * MedJourney Design Tokens
+ * Canonical product language — use via CSS vars or Tailwind `mm-*` utilities.
+ * Existing page styles remain untouched; migrate pages gradually.
+ */
+
+:root {
+  /* ——— Color: Brand ——— */
+  --mm-navy-950: #071628;
+  --mm-navy-900: #0e3a5d;
+  --mm-navy-800: #16486f;
+  --mm-navy-700: #1f5a84;
+  --mm-navy-100: #e8eef4;
+  --mm-navy-50: #f2f6f9;
+
+  --mm-teal-700: #178f8a;
+  --mm-teal-600: #1fa6a0;
+  --mm-teal-500: #2bb8b1;
+  --mm-teal-100: #d8f3f1;
+  --mm-teal-50: #eefaf9;
+
+  /* ——— Color: Semantic ——— */
+  --mm-success-700: #15803d;
+  --mm-success-600: #16a34a;
+  --mm-success-50: #ecfdf3;
+
+  --mm-warning-700: #b45309;
+  --mm-warning-600: #d97706;
+  --mm-warning-50: #fff7ed;
+
+  --mm-error-700: #b91c1c;
+  --mm-error-600: #dc2626;
+  --mm-error-50: #fef2f2;
+
+  /* ——— Color: Neutral ——— */
+  --mm-white: #ffffff;
+  --mm-gray-50: #f8fafc;
+  --mm-gray-100: #f1f5f9;
+  --mm-gray-200: #e8edf2;
+  --mm-gray-300: #d5dee8;
+  --mm-gray-400: #94a3b8;
+  --mm-gray-500: #64748b;
+  --mm-gray-600: #475569;
+  --mm-gray-700: #334155;
+  --mm-gray-800: #1e293b;
+  --mm-gray-900: #0f172a;
+
+  --mm-border: var(--mm-gray-200);
+  --mm-border-strong: var(--mm-gray-300);
+  --mm-bg: var(--mm-gray-50);
+  --mm-surface: var(--mm-white);
+  --mm-text: var(--mm-navy-900);
+  --mm-text-secondary: rgba(14, 58, 93, 0.62);
+  --mm-text-muted: rgba(14, 58, 93, 0.48);
+  --mm-focus-ring: rgba(31, 166, 160, 0.28);
+
+  /* ——— Typography ——— */
+  --mm-font-sans: var(--font-plus-jakarta), system-ui, sans-serif;
+  --mm-font-display: var(--font-source-serif), Georgia, "Times New Roman", serif;
+
+  --mm-text-display: clamp(2.5rem, 5vw, 3.75rem);
+  --mm-text-page-title: clamp(1.75rem, 2.5vw, 2rem);
+  --mm-text-section: clamp(1.25rem, 1.8vw, 1.5rem);
+  --mm-text-body: 1rem;
+  --mm-text-body-sm: 0.9375rem;
+  --mm-text-caption: 0.8125rem;
+  --mm-text-label: 0.75rem;
+
+  --mm-leading-display: 1.08;
+  --mm-leading-title: 1.2;
+  --mm-leading-body: 1.65;
+  --mm-leading-caption: 1.45;
+
+  --mm-tracking-display: -0.03em;
+  --mm-tracking-title: -0.02em;
+  --mm-tracking-label: 0.14em;
+
+  /* ——— Spacing (4px base) ——— */
+  --mm-space-0: 0;
+  --mm-space-1: 0.25rem; /* 4 */
+  --mm-space-2: 0.5rem; /* 8 */
+  --mm-space-3: 0.75rem; /* 12 */
+  --mm-space-4: 1rem; /* 16 */
+  --mm-space-5: 1.25rem; /* 20 */
+  --mm-space-6: 1.5rem; /* 24 */
+  --mm-space-7: 1.75rem; /* 28 */
+  --mm-space-8: 2rem; /* 32 */
+  --mm-space-10: 2.5rem; /* 40 */
+  --mm-space-12: 3rem; /* 48 */
+  --mm-space-16: 4rem; /* 64 */
+  --mm-space-20: 5rem; /* 80 */
+  --mm-space-24: 6rem; /* 96 */
+
+  --mm-container: 72rem;
+  --mm-gutter: 1.5rem;
+  --mm-sidebar-width: 16rem;
+  --mm-topnav-height: 4rem;
+
+  /* ——— Radius ——— */
+  --mm-radius-sm: 10px;
+  --mm-radius-md: 12px;
+  --mm-radius-lg: 14px;
+  --mm-radius-xl: 18px;
+  --mm-radius-2xl: 24px;
+  --mm-radius-full: 9999px;
+
+  /* ——— Shadows ——— */
+  --mm-shadow-xs: 0 1px 2px rgba(14, 58, 93, 0.04);
+  --mm-shadow-sm: 0 1px 2px rgba(14, 58, 93, 0.04), 0 4px 12px rgba(14, 58, 93, 0.04);
+  --mm-shadow-md: 0 2px 4px rgba(14, 58, 93, 0.04), 0 12px 28px rgba(14, 58, 93, 0.07);
+  --mm-shadow-lg: 0 8px 16px rgba(14, 58, 93, 0.06), 0 24px 48px rgba(14, 58, 93, 0.1);
+  --mm-shadow-focus: 0 0 0 3px var(--mm-focus-ring);
+  --mm-shadow-teal: 0 8px 20px rgba(31, 166, 160, 0.22);
+
+  /* ——— Motion ——— */
+  --mm-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --mm-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --mm-duration-fast: 150ms;
+  --mm-duration: 220ms;
+  --mm-duration-slow: 350ms;
+}
+
+@theme inline {
+  --color-mm-navy: var(--mm-navy-900);
+  --color-mm-navy-950: var(--mm-navy-950);
+  --color-mm-navy-800: var(--mm-navy-800);
+  --color-mm-navy-700: var(--mm-navy-700);
+  --color-mm-navy-100: var(--mm-navy-100);
+  --color-mm-navy-50: var(--mm-navy-50);
+
+  --color-mm-teal: var(--mm-teal-600);
+  --color-mm-teal-700: var(--mm-teal-700);
+  --color-mm-teal-500: var(--mm-teal-500);
+  --color-mm-teal-100: var(--mm-teal-100);
+  --color-mm-teal-50: var(--mm-teal-50);
+
+  --color-mm-success: var(--mm-success-600);
+  --color-mm-success-700: var(--mm-success-700);
+  --color-mm-success-50: var(--mm-success-50);
+
+  --color-mm-warning: var(--mm-warning-600);
+  --color-mm-warning-700: var(--mm-warning-700);
+  --color-mm-warning-50: var(--mm-warning-50);
+
+  --color-mm-error: var(--mm-error-600);
+  --color-mm-error-700: var(--mm-error-700);
+  --color-mm-error-50: var(--mm-error-50);
+
+  --color-mm-white: var(--mm-white);
+  --color-mm-gray-50: var(--mm-gray-50);
+  --color-mm-gray-100: var(--mm-gray-100);
+  --color-mm-gray-200: var(--mm-gray-200);
+  --color-mm-gray-300: var(--mm-gray-300);
+  --color-mm-gray-400: var(--mm-gray-400);
+  --color-mm-gray-500: var(--mm-gray-500);
+  --color-mm-gray-600: var(--mm-gray-600);
+  --color-mm-gray-700: var(--mm-gray-700);
+  --color-mm-gray-800: var(--mm-gray-800);
+  --color-mm-gray-900: var(--mm-gray-900);
+  --color-mm-border: var(--mm-border);
+  --color-mm-bg: var(--mm-bg);
+  --color-mm-surface: var(--mm-surface);
+  --color-mm-text: var(--mm-text);
+  --color-mm-text-secondary: var(--mm-text-secondary);
+  --color-mm-text-muted: var(--mm-text-muted);
+
+  --shadow-mm-xs: var(--mm-shadow-xs);
+  --shadow-mm-sm: var(--mm-shadow-sm);
+  --shadow-mm-md: var(--mm-shadow-md);
+  --shadow-mm-lg: var(--mm-shadow-lg);
+  --shadow-mm-teal: var(--mm-shadow-teal);
+
+  --radius-mm-sm: var(--mm-radius-sm);
+  --radius-mm-md: var(--mm-radius-md);
+  --radius-mm-lg: var(--mm-radius-lg);
+  --radius-mm-xl: var(--mm-radius-xl);
+  --radius-mm-2xl: var(--mm-radius-2xl);
+}
+
+/* Motion utilities */
+@keyframes mm-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mm-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mm-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.mm-animate-fade-in {
+  animation: mm-fade-in var(--mm-duration-slow) var(--mm-ease-out) both;
+}
+
+.mm-animate-fade-up {
+  animation: mm-fade-up var(--mm-duration-slow) var(--mm-ease-out) both;
+}
+
+.mm-animate-scale-in {
+  animation: mm-scale-in var(--mm-duration-slow) var(--mm-ease-out) both;
+}
+
+.mm-delay-1 {
+  animation-delay: 80ms;
+}
+.mm-delay-2 {
+  animation-delay: 160ms;
+}
+.mm-delay-3 {
+  animation-delay: 240ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-animate-fade-in,
+  .mm-animate-fade-up,
+  .mm-animate-scale-in {
+    animation: none;
+  }
+}

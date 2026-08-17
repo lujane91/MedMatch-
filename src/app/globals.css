@@ -1,0 +1,174 @@
+@import "tailwindcss";
+@import "../styles/design-tokens.css";
+
+/* Legacy aliases → MedJourney design system (keeps older class names in sync) */
+:root {
+  --navy: var(--mm-navy-900);
+  --navy-deep: var(--mm-navy-950);
+  --navy-muted: var(--mm-navy-800);
+  --teal: var(--mm-teal-600);
+  --teal-dark: var(--mm-teal-700);
+  --teal-soft: var(--mm-teal-50);
+  --white: var(--mm-white);
+  --gray-50: var(--mm-gray-50);
+  --gray-100: var(--mm-gray-100);
+  --gray-200: var(--mm-gray-200);
+  --gray-400: var(--mm-gray-400);
+  --gray-500: var(--mm-gray-500);
+  --gray-700: var(--mm-gray-700);
+  --gray-900: var(--mm-gray-900);
+  --border: var(--mm-border);
+  --shadow: var(--mm-shadow-sm);
+  --radius: var(--mm-radius-xl);
+}
+
+@theme inline {
+  --color-navy: var(--navy);
+  --color-navy-deep: var(--navy-deep);
+  --color-navy-muted: var(--navy-muted);
+  --color-teal: var(--teal);
+  --color-teal-dark: var(--teal-dark);
+  --color-teal-soft: var(--teal-soft);
+  --color-gray-50: var(--gray-50);
+  --color-gray-100: var(--gray-100);
+  --color-gray-200: var(--gray-200);
+  --color-gray-400: var(--gray-400);
+  --color-gray-500: var(--gray-500);
+  --color-gray-700: var(--gray-700);
+  --color-gray-900: var(--gray-900);
+  --color-border: var(--border);
+  --font-sans: var(--font-plus-jakarta);
+  --font-display: var(--font-source-serif);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--mm-bg);
+  color: var(--mm-text);
+  font-family: var(--mm-font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+/* Keep in-page anchors clear of the sticky top bar */
+[id] {
+  scroll-margin-top: calc(var(--mm-topnav-height, 4rem) + 1rem);
+}
+
+.font-display {
+  font-family: var(--mm-font-display);
+}
+
+/* Shared product utilities — prefer UI components; these keep links consistent */
+.mm-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--mm-text-muted);
+  transition: color var(--mm-duration) var(--mm-ease-out);
+}
+
+.mm-link:hover {
+  color: var(--mm-navy-900);
+}
+
+.mm-page {
+  margin-inline: auto;
+  max-width: 72rem;
+}
+
+.mm-page-narrow {
+  margin-inline: auto;
+  max-width: 56rem;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.55s var(--mm-ease-out) both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.45s var(--mm-ease-out) both;
+}
+
+.delay-1 {
+  animation-delay: 0.08s;
+}
+
+.delay-2 {
+  animation-delay: 0.16s;
+}
+
+.delay-3 {
+  animation-delay: 0.24s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-fade-in {
+    animation: none;
+  }
+}
+
+/* Hospital admin motion/utilities (aliases — do not affect intern UI) */
+@keyframes mm-slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes mm-drawer-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes mm-pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.mm-fade-in {
+  animation: mm-fade-in var(--mm-duration) var(--mm-ease-out);
+}
+.mm-slide-up {
+  animation: mm-slide-up var(--mm-duration) var(--mm-ease-out);
+}
+.mm-drawer-in {
+  animation: mm-drawer-in var(--mm-duration) var(--mm-ease-out);
+}
+.mm-skeleton {
+  animation: mm-pulse-soft 1.4s ease-in-out infinite;
+  background: var(--mm-gray-100);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mm-fade-in,
+  .mm-slide-up,
+  .mm-drawer-in,
+  .mm-skeleton {
+    animation: none;
+  }
+}
