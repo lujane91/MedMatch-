@@ -13,7 +13,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { fieldLabel } from "@/data/intern";
+import { fieldLabel, trainingStageLabel } from "@/data/intern";
 import { formatPlanPrice } from "@/data/platform-subscription-plan";
 import { useInternStore } from "@/lib/intern-store";
 import { usePlatformSubscriptionPlanStore } from "@/lib/platform-subscription-plan-store";
@@ -132,7 +132,8 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-mm-teal">
-              {fieldLabel(profile.field)} · Intern
+              {fieldLabel(profile.field)} ·{" "}
+              {trainingStageLabel(profile.trainingStage) || "Intern"}
             </p>
             <h1 className="mt-2 font-[family-name:var(--mm-font-display)] text-[clamp(1.75rem,3vw,2.5rem)] tracking-[-0.02em] text-mm-navy">
               Welcome, {firstName}

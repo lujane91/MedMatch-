@@ -9,11 +9,28 @@ export type HealthcareField =
 export type TrainingStage =
   | "medical-student"
   | "intern"
+  | "advanced-training"
   | "resident"
   | "fellow"
   | "medical-practice"
   | "residency"
   | "fellowship";
+
+/** Flexible postgraduate program kinds for non physician pathways. */
+export type TrainingProgramKind =
+  | "advanced-training"
+  | "professional-training"
+  | "postgraduate-training"
+  | "clinical-diploma"
+  | "specialty-training";
+
+export const ADVANCED_TRAINING_FIELDS = [
+  "nursing",
+  "pharmacy",
+  "allied",
+] as const satisfies readonly HealthcareField[];
+
+export type AdvancedTrainingField = (typeof ADVANCED_TRAINING_FIELDS)[number];
 
 export type ProfessionalLevel = "gp" | "specialist" | "consultant";
 
@@ -79,6 +96,7 @@ export type InternProfile = {
   trainingInstitution: string;
   specialty: string;
   subspecialty: string;
+  trainingProgramKind: TrainingProgramKind | null;
   residencyYear: string;
   fellowshipYear: string;
   graduationYear: string;
@@ -348,6 +366,67 @@ export function defaultInternshipDates(reference = new Date()) {
 
 export function fieldLabel(field: HealthcareField | null) {
   return healthcareFields.find((f) => f.id === field)?.title ?? "Healthcare";
+}
+
+export function isAdvancedTrainingField(
+  field: HealthcareField | null | undefined,
+): field is AdvancedTrainingField {
+  return (
+    field === "nursing" || field === "pharmacy" || field === "allied"
+  );
+}
+
+export function trainingStageLabel(stage: TrainingStage | null | undefined) {
+  switch (stage) {
+    case "medical-student":
+      return "Medical Student";
+    case "intern":
+      return "Intern";
+    case "advanced-training":
+      return "Advanced Training";
+    case "resident":
+    case "residency":
+      return "Resident";
+    case "fellow":
+    case "fellowship":
+      return "Fellow";
+    case "medical-practice":
+      return "Medical Practice";
+    default:
+      return "";
+  }
+}
+
+export function formatTrainingYearProgress(
+  currentYear: string | null | undefined,
+  totalYears: string | null | undefined,
+) {
+  const current = currentYear?.trim();
+  const total = totalYears?.trim();
+  if (!current || !total) return "";
+  return `Year ${current} of ${total}`;
+}
+
+export function getPassportFacts(profile: InternProfile) {
+  const facts: string[] = [];
+  if (profile.field) {
+    facts.push(fieldLabel(profile.field));
+  }
+  const stage = trainingStageLabel(profile.trainingStage);
+  if (stage) facts.push(stage);
+  const program = profile.specialty?.trim();
+  if (program) facts.push(program);
+  const subspecialty = profile.subspecialty?.trim();
+  if (subspecialty) facts.push(subspecialty);
+  const year = formatTrainingYearProgress(
+    profile.currentYear,
+    profile.totalYears,
+  );
+  if (year) facts.push(year);
+  const institution =
+    profile.trainingInstitution?.trim() || profile.university?.trim();
+  if (institution) facts.push(institution);
+  return facts;
 }
 
 export function hospitalById(id: string) {

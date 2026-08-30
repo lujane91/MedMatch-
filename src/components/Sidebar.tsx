@@ -13,7 +13,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { Logo } from "./Logo";
-import { fieldLabel } from "@/data/intern";
+import { fieldLabel, trainingStageLabel } from "@/data/intern";
 import { cn } from "@/lib/cn";
 import { useInternStore } from "@/lib/intern-store";
 
@@ -86,7 +86,8 @@ export function Sidebar() {
               {profile.fullName || firstName}
             </p>
             <p className="truncate text-[0.75rem] text-mm-text-muted">
-              Intern · {fieldLabel(profile.field)}
+              {trainingStageLabel(profile.trainingStage) || "Intern"} ·{" "}
+              {fieldLabel(profile.field)}
             </p>
           </div>
         </Link>

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import {
+  Award,
   Briefcase,
   CalendarDays,
   GraduationCap,
@@ -16,6 +17,7 @@ import { useInternStore } from "@/lib/intern-store";
 const stages: {
   id: TrainingStage;
   title: string;
+  subtitle?: string;
   icon: typeof GraduationCap;
 }[] = [
   {
@@ -27,6 +29,12 @@ const stages: {
     id: "intern",
     title: "Intern",
     icon: CalendarDays,
+  },
+  {
+    id: "advanced-training",
+    title: "Advanced Training",
+    subtitle: "For Nursing, Pharmacy and Allied Health",
+    icon: Award,
   },
   {
     id: "resident",
@@ -79,9 +87,16 @@ export default function ApplyingForPage() {
                 <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[rgba(31,166,160,0.12)] text-mm-teal">
                   <Icon size={22} strokeWidth={1.75} />
                 </span>
-                <p className="text-[1.0625rem] font-semibold text-mm-navy">
-                  {stage.title}
-                </p>
+                <div className="min-w-0">
+                  <p className="text-[1.0625rem] font-semibold text-mm-navy">
+                    {stage.title}
+                  </p>
+                  {stage.subtitle ? (
+                    <p className="mt-0.5 text-[0.8125rem] leading-snug text-mm-text-muted">
+                      {stage.subtitle}
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </button>
           );

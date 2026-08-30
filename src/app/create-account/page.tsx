@@ -5,7 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/AuthShell";
 import { Input, SearchableSelect } from "@/components/ui";
-import type { TrainingStage } from "@/data/intern";
+import { getAdvancedTrainingProgramsForField } from "@/data/advanced-training-programs";
+import {
+  isAdvancedTrainingField,
+  type TrainingStage,
+} from "@/data/intern";
 import { SAUDI_HOSPITAL_NAMES } from "@/data/saudi-hospitals";
 import { getSpecialtiesForField } from "@/data/saudi-specialties";
 import { getSubspecialtiesForSpecialty } from "@/data/saudi-subspecialties";
@@ -127,9 +131,27 @@ function needsYearProgress(stage: TrainingStage | null) {
   return (
     stage === "medical-student" ||
     stage === "intern" ||
+    stage === "advanced-training" ||
     stage === "resident" ||
     stage === "fellow"
   );
+}
+
+function usesHospitalAndProgram(stage: TrainingStage | null) {
+  return (
+    stage === "advanced-training" ||
+    stage === "resident" ||
+    stage === "fellow"
+  );
+}
+
+function yearProgressLabel(stage: TrainingStage | null) {
+  if (stage === "medical-student") return "Current academic year";
+  if (stage === "intern") return "Current internship year";
+  if (stage === "advanced-training") return "Current Training Year";
+  if (stage === "resident") return "Current residency year";
+  if (stage === "fellow") return "Current fellowship year";
+  return "Current year";
 }
 
 export default function CreateAccountPage() {
@@ -159,10 +181,12 @@ export default function CreateAccountPage() {
   const [error, setError] = useState("");
 
   const stage = profile.trainingStage;
-  const specialtyOptions = useMemo(
-    () => getSpecialtiesForField(profile.field),
-    [profile.field],
-  );
+  const specialtyOptions = useMemo(() => {
+    if (stage === "advanced-training") {
+      return getAdvancedTrainingProgramsForField(profile.field);
+    }
+    return getSpecialtiesForField(profile.field);
+  }, [profile.field, stage]);
   const subspecialtyOptions = useMemo(
     () => getSubspecialtiesForSpecialty(specialty),
     [specialty],
@@ -179,6 +203,13 @@ export default function CreateAccountPage() {
       return;
     }
     if (!profile.field) {
+      router.replace("/onboarding/profession");
+      return;
+    }
+    if (
+      profile.trainingStage === "advanced-training" &&
+      !isAdvancedTrainingField(profile.field)
+    ) {
       router.replace("/onboarding/profession");
       return;
     }
@@ -229,6 +260,17 @@ export default function CreateAccountPage() {
         return;
       }
     }
+    if (stage === "advanced-training") {
+      if (
+        !trainingInstitution.trim() ||
+        !specialty.trim() ||
+        !currentYear ||
+        !totalYears
+      ) {
+        setError("Please complete all required fields.");
+        return;
+      }
+    }
     if (stage === "resident") {
       if (
         !trainingInstitution.trim() ||
@@ -274,26 +316,31 @@ export default function CreateAccountPage() {
       internshipYear: "",
       residencyYear: stage === "resident" ? currentYear : "",
       fellowshipYear: stage === "fellow" ? currentYear : "",
-      trainingInstitution:
-        stage === "resident" || stage === "fellow"
-          ? trainingInstitution.trim()
-          : "",
+      trainingInstitution: usesHospitalAndProgram(stage)
+        ? trainingInstitution.trim()
+        : "",
       specialty:
-        stage === "resident" ||
-        stage === "fellow" ||
-        stage === "medical-practice"
+        usesHospitalAndProgram(stage) || stage === "medical-practice"
           ? specialty.trim()
           : "",
       subspecialty:
         stage === "fellow" || showOptionalSubspecialty
           ? subspecialty.trim()
           : "",
+      trainingProgramKind:
+        stage === "advanced-training" ? "advanced-training" : null,
       identityVerified: false,
     });
     router.push("/onboarding/nafath");
   };
 
-  if (!hydrated || !stage || !profile.field) {
+  if (
+    !hydrated ||
+    !stage ||
+    !profile.field ||
+    (stage === "advanced-training" &&
+      !isAdvancedTrainingField(profile.field))
+  ) {
     return (
       <AuthShell
         title="Complete your account"
@@ -317,14 +364,7 @@ export default function CreateAccountPage() {
     );
   }
 
-  const yearLabel =
-    stage === "medical-student"
-      ? "Current academic year"
-      : stage === "intern"
-        ? "Current internship year"
-        : stage === "resident"
-          ? "Current residency year"
-          : "Current fellowship year";
+  const yearLabel = yearProgressLabel(stage);
 
   return (
     <AuthShell
@@ -407,6 +447,34 @@ export default function CreateAccountPage() {
                 value={university}
                 onChange={setUniversity}
                 options={SAUDI_UNIVERSITY_NAMES}
+                required
+              />
+              <YearOutOfTotal
+                label={yearLabel}
+                currentId="currentYear"
+                totalId="totalYears"
+                currentValue={currentYear}
+                totalValue={totalYears}
+                onCurrentChange={setCurrentYear}
+                onTotalChange={setTotalYears}
+              />
+            </>
+          ) : null}
+
+          {stage === "advanced-training" ? (
+            <>
+              <SearchableSelect
+                label="Hospital or Training Institution"
+                value={trainingInstitution}
+                onChange={setTrainingInstitution}
+                options={SAUDI_HOSPITAL_NAMES}
+                required
+              />
+              <SearchableSelect
+                label="Specialty or Training Program"
+                value={specialty}
+                onChange={setSpecialty}
+                options={specialtyOptions}
                 required
               />
               <YearOutOfTotal

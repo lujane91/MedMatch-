@@ -3,6 +3,7 @@ import { DownloadCvButton } from "@/components/DownloadCvButton";
 import { ShareButton } from "@/components/ShareButton";
 import { CircularProgress } from "@/components/profile/CircularProgress";
 import { EmptyState } from "@/components/profile/EmptyState";
+import { ProfilePassport } from "@/components/profile/ProfilePassport";
 import { ProfileSection } from "@/components/profile/ProfileSection";
 import { StudentEvaluationsSection } from "@/components/profile/StudentEvaluationsSection";
 import {
@@ -15,7 +16,6 @@ import {
 } from "@/components/ui";
 import {
   Award,
-  BadgeCheck,
   BookOpen,
   Briefcase,
   Check,
@@ -23,7 +23,6 @@ import {
   GraduationCap,
   HeartHandshake,
   Languages,
-  MapPin,
   ShieldCheck,
   Users,
 } from "@/components/ui/icons";
@@ -59,36 +58,7 @@ export default function ProfilePage() {
                 <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-[1.5rem] border-[5px] border-mm-white bg-mm-navy text-3xl font-semibold text-white shadow-mm-md sm:h-36 sm:w-36 sm:text-4xl">
                   {profile.initials}
                 </div>
-                <div className="pb-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {profile.verifiedBadges.map((badge) => (
-                      <span
-                        key={badge.id}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-mm-teal-50 px-2.5 py-1 text-[0.6875rem] font-semibold text-mm-teal-700"
-                      >
-                        <BadgeCheck size={12} strokeWidth={2} />
-                        {badge.label}
-                      </span>
-                    ))}
-                  </div>
-                  <h1 className="mt-3 font-[family-name:var(--mm-font-display)] text-[clamp(1.75rem,3vw,2.5rem)] leading-[1.1] tracking-[-0.025em] text-mm-navy">
-                    {profile.name}
-                  </h1>
-                  <p className="mt-2 text-[1rem] text-mm-text-secondary">
-                    {profile.title} · {profile.year}
-                  </p>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.875rem] text-mm-text-muted">
-                    <span>{profile.specialty}</span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <MapPin size={14} strokeWidth={1.75} />
-                      {profile.city}, {profile.country}
-                    </span>
-                  </div>
-                  <p className="mt-3 text-[0.875rem] font-medium text-mm-navy">
-                    Profile strength{" "}
-                    <span className="text-mm-teal">{profile.strength.score}%</span>
-                  </p>
-                </div>
+                <ProfilePassport />
               </div>
 
               <div className="flex flex-wrap gap-2.5 lg:pb-1">

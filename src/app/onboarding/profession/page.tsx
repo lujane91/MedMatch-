@@ -9,7 +9,10 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { InternOnboardingShell } from "@/components/intern/InternOnboardingShell";
-import type { HealthcareField } from "@/data/intern";
+import {
+  isAdvancedTrainingField,
+  type HealthcareField,
+} from "@/data/intern";
 import { cn } from "@/lib/cn";
 import { useInternStore } from "@/lib/intern-store";
 
@@ -60,11 +63,17 @@ export default function ProfessionPage() {
         {fields.map((field) => {
           const Icon = field.icon;
           const selected = profile.field === field.id;
+          const advancedTrainingLocked =
+            profile.trainingStage === "advanced-training" &&
+            !isAdvancedTrainingField(field.id);
           return (
             <button
               key={field.id}
               type="button"
+              disabled={advancedTrainingLocked}
+              aria-disabled={advancedTrainingLocked}
               onClick={() => {
+                if (advancedTrainingLocked) return;
                 setField(field.id);
                 if (
                   profile.trainingStage === "medical-practice" &&
@@ -76,8 +85,11 @@ export default function ProfessionPage() {
                 router.push("/create-account");
               }}
               className={cn(
-                "rounded-[var(--mm-radius-xl)] border bg-mm-surface p-5 text-left transition-[transform,border-color,box-shadow] duration-[var(--mm-duration)] hover:-translate-y-0.5 hover:border-mm-teal/40 hover:shadow-mm-sm sm:p-6",
-                selected
+                "rounded-[var(--mm-radius-xl)] border bg-mm-surface p-5 text-left transition-[transform,border-color,box-shadow] duration-[var(--mm-duration)] sm:p-6",
+                advancedTrainingLocked
+                  ? "cursor-not-allowed opacity-50"
+                  : "hover:-translate-y-0.5 hover:border-mm-teal/40 hover:shadow-mm-sm",
+                selected && !advancedTrainingLocked
                   ? "border-mm-teal shadow-mm-sm"
                   : "border-mm-border",
               )}

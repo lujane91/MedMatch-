@@ -14,6 +14,7 @@ import {
   defaultInternshipDates,
   defaultRequirements,
   deriveStatus,
+  isAdvancedTrainingField,
   type ApplicationStatus,
   type HealthcareField,
   type InternProfile,
@@ -68,6 +69,7 @@ const defaultProfile: InternProfile = {
   trainingInstitution: "",
   specialty: "",
   subspecialty: "",
+  trainingProgramKind: null,
   residencyYear: "",
   fellowshipYear: "",
   graduationYear: String(new Date().getFullYear()),
@@ -95,7 +97,11 @@ function loadState(): InternState {
     if (!raw) return defaultState;
     const parsed = JSON.parse(raw) as InternState;
     return {
-      profile: { ...defaultProfile, ...parsed.profile },
+      profile: {
+        ...defaultProfile,
+        ...parsed.profile,
+        trainingProgramKind: parsed.profile.trainingProgramKind ?? null,
+      },
       rotations: parsed.rotations ?? [],
     };
   } catch {
@@ -157,30 +163,50 @@ export function InternProvider({ children }: { children: ReactNode }) {
   );
 
   const setTrainingStage = useCallback((stage: TrainingStage) => {
-    setState((prev) => ({
-      ...prev,
-      profile: {
-        ...prev.profile,
-        trainingStage: stage,
-        professionalLevel:
-          stage === "medical-practice" ? prev.profile.professionalLevel : null,
-      },
-    }));
+    setState((prev) => {
+      const fieldStillValid =
+        stage !== "advanced-training" ||
+        isAdvancedTrainingField(prev.profile.field);
+      return {
+        ...prev,
+        profile: {
+          ...prev.profile,
+          trainingStage: stage,
+          professionalLevel:
+            stage === "medical-practice"
+              ? prev.profile.professionalLevel
+              : null,
+          field: fieldStillValid ? prev.profile.field : null,
+          trainingProgramKind:
+            stage === "advanced-training"
+              ? prev.profile.trainingProgramKind
+              : null,
+        },
+      };
+    });
   }, []);
 
   const setField = useCallback((field: HealthcareField) => {
-    setState((prev) => ({
-      ...prev,
-      profile: {
-        ...prev.profile,
-        field,
-        professionalLevel:
-          prev.profile.trainingStage === "medical-practice" &&
-          field === "medicine"
-            ? prev.profile.professionalLevel
-            : null,
-      },
-    }));
+    setState((prev) => {
+      if (
+        prev.profile.trainingStage === "advanced-training" &&
+        !isAdvancedTrainingField(field)
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        profile: {
+          ...prev.profile,
+          field,
+          professionalLevel:
+            prev.profile.trainingStage === "medical-practice" &&
+            field === "medicine"
+              ? prev.profile.professionalLevel
+              : null,
+        },
+      };
+    });
   }, []);
 
   const setProfessionalLevel = useCallback((level: ProfessionalLevel) => {
