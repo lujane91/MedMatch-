@@ -17,5 +17,6 @@ export { Card, type CardProps } from "./Card";
 
 export { Input, type InputProps } from "./Input";
 export { SearchInput, type SearchInputProps } from "./SearchInput";
+export { SearchableSelect } from "./SearchableSelect";
 
 export * from "./icons";

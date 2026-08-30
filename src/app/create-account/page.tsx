@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/AuthShell";
-import { Input } from "@/components/ui";
+import { Input, SearchableSelect } from "@/components/ui";
 import type { TrainingStage } from "@/data/intern";
+import { SAUDI_HOSPITAL_NAMES } from "@/data/saudi-hospitals";
+import { getSpecialtiesForField } from "@/data/saudi-specialties";
+import { getSubspecialtiesForSpecialty } from "@/data/saudi-subspecialties";
+import { SAUDI_UNIVERSITY_NAMES } from "@/data/saudi-universities";
 import { cn } from "@/lib/cn";
 import { useInternStore } from "@/lib/intern-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
@@ -155,6 +159,18 @@ export default function CreateAccountPage() {
   const [error, setError] = useState("");
 
   const stage = profile.trainingStage;
+  const specialtyOptions = useMemo(
+    () => getSpecialtiesForField(profile.field),
+    [profile.field],
+  );
+  const subspecialtyOptions = useMemo(
+    () => getSubspecialtiesForSpecialty(specialty),
+    [specialty],
+  );
+  const showOptionalSubspecialty =
+    stage === "medical-practice" &&
+    profile.field === "medicine" &&
+    profile.professionalLevel === "consultant";
 
   useEffect(() => {
     if (!hydrated) return;
@@ -228,7 +244,6 @@ export default function CreateAccountPage() {
       if (
         !trainingInstitution.trim() ||
         !specialty.trim() ||
-        !subspecialty.trim() ||
         !currentYear ||
         !totalYears
       ) {
@@ -269,7 +284,10 @@ export default function CreateAccountPage() {
         stage === "medical-practice"
           ? specialty.trim()
           : "",
-      subspecialty: stage === "fellow" ? subspecialty.trim() : "",
+      subspecialty:
+        stage === "fellow" || showOptionalSubspecialty
+          ? subspecialty.trim()
+          : "",
       identityVerified: false,
     });
     router.push("/onboarding/nafath");
@@ -363,11 +381,11 @@ export default function CreateAccountPage() {
         <div className="space-y-4 border-t border-mm-border pt-4">
           {stage === "medical-student" ? (
             <>
-              <Input
+              <SearchableSelect
                 label="University name"
-                name="university"
                 value={university}
-                onChange={(e) => setUniversity(e.target.value)}
+                onChange={setUniversity}
+                options={SAUDI_UNIVERSITY_NAMES}
                 required
               />
               <YearOutOfTotal
@@ -384,11 +402,11 @@ export default function CreateAccountPage() {
 
           {stage === "intern" ? (
             <>
-              <Input
+              <SearchableSelect
                 label="University name"
-                name="university"
                 value={university}
-                onChange={(e) => setUniversity(e.target.value)}
+                onChange={setUniversity}
+                options={SAUDI_UNIVERSITY_NAMES}
                 required
               />
               <YearOutOfTotal
@@ -405,18 +423,21 @@ export default function CreateAccountPage() {
 
           {stage === "resident" ? (
             <>
-              <Input
+              <SearchableSelect
                 label="Hospital or training institution"
-                name="trainingInstitution"
                 value={trainingInstitution}
-                onChange={(e) => setTrainingInstitution(e.target.value)}
+                onChange={setTrainingInstitution}
+                options={SAUDI_HOSPITAL_NAMES}
                 required
               />
-              <Input
+              <SearchableSelect
                 label="Specialty"
-                name="specialty"
                 value={specialty}
-                onChange={(e) => setSpecialty(e.target.value)}
+                onChange={(next) => {
+                  setSpecialty(next);
+                  setSubspecialty("");
+                }}
+                options={specialtyOptions}
                 required
               />
               <YearOutOfTotal
@@ -433,26 +454,29 @@ export default function CreateAccountPage() {
 
           {stage === "fellow" ? (
             <>
-              <Input
+              <SearchableSelect
                 label="Hospital or training institution"
-                name="trainingInstitution"
                 value={trainingInstitution}
-                onChange={(e) => setTrainingInstitution(e.target.value)}
+                onChange={setTrainingInstitution}
+                options={SAUDI_HOSPITAL_NAMES}
                 required
               />
-              <Input
+              <SearchableSelect
                 label="Specialty"
-                name="specialty"
                 value={specialty}
-                onChange={(e) => setSpecialty(e.target.value)}
+                onChange={(next) => {
+                  setSpecialty(next);
+                  setSubspecialty("");
+                }}
+                options={specialtyOptions}
                 required
               />
-              <Input
+              <SearchableSelect
                 label="Subspecialty"
-                name="subspecialty"
                 value={subspecialty}
-                onChange={(e) => setSubspecialty(e.target.value)}
-                required
+                onChange={setSubspecialty}
+                options={subspecialtyOptions}
+                required={false}
               />
               <YearOutOfTotal
                 label={yearLabel}
@@ -467,13 +491,27 @@ export default function CreateAccountPage() {
           ) : null}
 
           {stage === "medical-practice" ? (
-            <Input
-              label="Current specialty"
-              name="specialty"
-              value={specialty}
-              onChange={(e) => setSpecialty(e.target.value)}
-              required
-            />
+            <>
+              <SearchableSelect
+                label="Current specialty"
+                value={specialty}
+                onChange={(next) => {
+                  setSpecialty(next);
+                  setSubspecialty("");
+                }}
+                options={specialtyOptions}
+                required
+              />
+              {showOptionalSubspecialty ? (
+                <SearchableSelect
+                  label="Subspecialty"
+                  value={subspecialty}
+                  onChange={setSubspecialty}
+                  options={subspecialtyOptions}
+                  required={false}
+                />
+              ) : null}
+            </>
           ) : null}
         </div>
 
