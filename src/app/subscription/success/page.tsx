@@ -63,8 +63,8 @@ export default function SubscriptionSuccessPage() {
       </div>
 
       <div className="mt-8 space-y-4">
-        <Link href="/dashboard" className={subscriptionPrimaryButtonClass}>
-          Enter Internship Dashboard
+        <Link href="/passport?welcome=1" className={subscriptionPrimaryButtonClass}>
+          Open MedJourney Passport
         </Link>
         <Link
           href="/subscription/invoice"

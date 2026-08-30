@@ -57,12 +57,20 @@ export function DashboardIdentity() {
             {specialty ? <p>{specialty}</p> : null}
             {institution ? <p>{institution}</p> : null}
           </div>
-          <Link
-            href="/profile"
-            className="mt-4 inline-flex min-h-10 items-center text-[0.875rem] font-semibold text-mm-teal transition-colors hover:text-mm-teal-700"
-          >
-            My MedJourney Passport
-          </Link>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <Link
+              href="/passport"
+              className="inline-flex min-h-10 items-center text-[0.875rem] font-semibold text-mm-teal transition-colors hover:text-mm-teal-700"
+            >
+              My MedJourney Passport
+            </Link>
+            <Link
+              href="/profile"
+              className="inline-flex min-h-10 items-center text-[0.875rem] font-semibold text-mm-text-secondary transition-colors hover:text-mm-navy"
+            >
+              My Profile
+            </Link>
+          </div>
         </div>
       </div>
     </section>

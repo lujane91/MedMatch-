@@ -90,13 +90,21 @@ export function Sidebar() {
             </p>
           </div>
         </Link>
-        <Link
-          href="/profile"
-          className="mt-2 flex items-center gap-2 px-2 py-1.5 text-[0.75rem] font-medium text-mm-text-muted hover:text-mm-navy"
-        >
-          <UserRound size={14} strokeWidth={1.75} />
-          Passport and profile
-        </Link>
+        <div className="mt-2 space-y-1 px-2">
+          <Link
+            href="/profile"
+            className="flex items-center gap-2 py-1.5 text-[0.75rem] font-medium text-mm-text-muted hover:text-mm-navy"
+          >
+            <UserRound size={14} strokeWidth={1.75} />
+            My Profile
+          </Link>
+          <Link
+            href="/passport"
+            className="flex items-center gap-2 py-1.5 text-[0.75rem] font-medium text-mm-text-muted hover:text-mm-navy"
+          >
+            My MedJourney Passport
+          </Link>
+        </div>
       </div>
     </aside>
   );

@@ -1,512 +1,452 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { DownloadCvButton } from "@/components/DownloadCvButton";
-import { ShareButton } from "@/components/ShareButton";
-import { CircularProgress } from "@/components/profile/CircularProgress";
-import { EmptyState } from "@/components/profile/EmptyState";
-import { ProfilePassport } from "@/components/profile/ProfilePassport";
-import { ProfileSection } from "@/components/profile/ProfileSection";
-import { StudentEvaluationsSection } from "@/components/profile/StudentEvaluationsSection";
+import { Input } from "@/components/ui";
 import {
-  Badge,
-  Body,
-  Caption,
-  Card,
-  CardTitle,
-  Label,
-} from "@/components/ui";
-import {
-  Award,
-  BookOpen,
-  Briefcase,
-  Check,
-  FileText,
-  GraduationCap,
-  HeartHandshake,
-  Languages,
-  ShieldCheck,
-  Users,
-} from "@/components/ui/icons";
-import { profileData } from "@/data/profile";
+  fieldLabel,
+  formatTrainingYearProgress,
+  professionalLevelLabel,
+  trainingStageLabel,
+  type InternProfile,
+} from "@/data/intern";
+import { getInstitution, resolveStage } from "@/data/journey-dashboard";
+import { cn } from "@/lib/cn";
+import { useInternStore } from "@/lib/intern-store";
+
+function initialsFromName(name: string) {
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "MJ"
+  );
+}
+
+function FieldRow({ label, value }: { label: string; value: string }) {
+  if (!value.trim()) return null;
+  return (
+    <div>
+      <p className="text-[0.75rem] font-semibold uppercase tracking-[0.08em] text-mm-text-muted">
+        {label}
+      </p>
+      <p className="mt-1 text-[0.9375rem] text-mm-navy">{value}</p>
+    </div>
+  );
+}
+
+function buildDraft(profile: InternProfile): Partial<InternProfile> {
+  return {
+    fullName: profile.fullName,
+    mobile: profile.mobile,
+    email: profile.email,
+    institutionEmail: profile.institutionEmail,
+    university: profile.university,
+    trainingInstitution: profile.trainingInstitution,
+    currentYear: profile.currentYear,
+    totalYears: profile.totalYears,
+    specialty: profile.specialty,
+    subspecialty: profile.subspecialty,
+  };
+}
 
 export default function ProfilePage() {
-  const profile = profileData;
+  const { profile, hydrated, updateProfile } = useInternStore();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<Partial<InternProfile>>({});
+  const [saved, setSaved] = useState(false);
+
+  const stage = resolveStage(profile.trainingStage);
+
+  const viewFields = useMemo(() => {
+    const year = formatTrainingYearProgress(
+      profile.currentYear,
+      profile.totalYears,
+    );
+    const rows: { label: string; value: string }[] = [
+      { label: "Full Name", value: profile.fullName },
+      { label: "Mobile Number", value: profile.mobile },
+      { label: "Personal Email", value: profile.email },
+      { label: "Institutional Email", value: profile.institutionEmail },
+      { label: "Healthcare Field", value: fieldLabel(profile.field) },
+      { label: "Journey Stage", value: trainingStageLabel(stage) },
+    ];
+
+    if (stage === "medical-student" || stage === "intern") {
+      rows.push({
+        label: "University",
+        value: profile.university || getInstitution(profile),
+      });
+      if (year) {
+        rows.push({
+          label:
+            stage === "medical-student"
+              ? "Current Academic Year"
+              : "Current Internship Year",
+          value: year,
+        });
+      }
+    }
+
+    if (
+      stage === "advanced-training" ||
+      stage === "resident" ||
+      stage === "fellow"
+    ) {
+      rows.push({
+        label: "Hospital or Training Institution",
+        value: profile.trainingInstitution,
+      });
+      rows.push({
+        label:
+          stage === "advanced-training"
+            ? "Specialty or Training Program"
+            : "Specialty",
+        value: profile.specialty,
+      });
+      if (stage === "fellow" && profile.subspecialty.trim()) {
+        rows.push({ label: "Subspecialty", value: profile.subspecialty });
+      }
+      if (year) {
+        rows.push({
+          label:
+            stage === "advanced-training"
+              ? "Current Training Year"
+              : stage === "resident"
+                ? "Current Residency Year"
+                : "Current Fellowship Year",
+          value: year,
+        });
+      }
+    }
+
+    if (stage === "medical-practice") {
+      const level = professionalLevelLabel(profile.professionalLevel);
+      if (level) rows.push({ label: "Professional Level", value: level });
+      rows.push({ label: "Specialty", value: profile.specialty });
+      if (profile.subspecialty.trim()) {
+        rows.push({ label: "Subspecialty", value: profile.subspecialty });
+      }
+      if (profile.trainingInstitution.trim()) {
+        rows.push({
+          label: "Current Institution",
+          value: profile.trainingInstitution,
+        });
+      }
+    }
+
+    return rows.filter((row) => row.value.trim());
+  }, [profile, stage]);
+
+  function onSave(e: React.FormEvent) {
+    e.preventDefault();
+    updateProfile({
+      fullName: draft.fullName?.trim() || profile.fullName,
+      mobile: draft.mobile?.trim() || profile.mobile,
+      email: draft.email?.trim() || profile.email,
+      institutionEmail:
+        draft.institutionEmail?.trim() || profile.institutionEmail,
+      university: draft.university?.trim() ?? profile.university,
+      trainingInstitution:
+        draft.trainingInstitution?.trim() ?? profile.trainingInstitution,
+      currentYear: draft.currentYear ?? profile.currentYear,
+      totalYears: draft.totalYears ?? profile.totalYears,
+      specialty: draft.specialty?.trim() ?? profile.specialty,
+      subspecialty: draft.subspecialty?.trim() ?? profile.subspecialty,
+    });
+    setEditing(false);
+    setSaved(true);
+  }
+
+  if (!hydrated) {
+    return (
+      <AppShell title="Profile">
+        <p className="text-mm-text-muted">Loading your profile…</p>
+      </AppShell>
+    );
+  }
 
   return (
-    <AppShell>
-      <div className="mx-auto max-w-5xl space-y-8 mm-animate-fade-up lg:space-y-10">
-        {/* Hero */}
-        <section className="overflow-hidden rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-surface shadow-mm-sm">
-          <div
-            className="relative h-36 sm:h-44"
-            style={{
-              background:
-                "linear-gradient(135deg, #0E3A5D 0%, #16486F 48%, #1FA6A0 100%)",
-            }}
-          >
-            <div
-              className="absolute inset-0 opacity-30"
-              style={{
-                background:
-                  "radial-gradient(circle at 20% 30%, rgba(255,255,255,0.18), transparent 40%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.1), transparent 35%)",
+    <AppShell title="Profile">
+    <div className="mx-auto max-w-2xl space-y-5 pb-24 lg:pb-10">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-mm-teal">
+            My Profile
+          </p>
+          <h1 className="mt-2 font-[family-name:var(--mm-font-display)] text-[clamp(1.5rem,4vw,2rem)] tracking-[-0.02em] text-mm-navy">
+            Your information
+          </h1>
+        </div>
+        <Link
+          href="/passport"
+          className="inline-flex min-h-10 items-center justify-center rounded-[var(--mm-radius-lg)] border border-mm-border bg-mm-white px-4 text-[0.8125rem] font-semibold text-mm-navy"
+        >
+          My MedJourney Passport
+        </Link>
+      </div>
+
+      <section className="rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-surface p-5 shadow-mm-sm sm:p-6">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-[1.15rem] bg-mm-navy text-[1.125rem] font-semibold text-white">
+            {initialsFromName(profile.fullName || "MJ")}
+          </div>
+          <div>
+            <p className="text-[1.0625rem] font-semibold text-mm-navy">
+              {profile.fullName || "MedJourney Member"}
+            </p>
+            <p className="mt-1 text-[0.875rem] text-mm-text-secondary">
+              {[trainingStageLabel(stage), fieldLabel(profile.field)]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
+        </div>
+
+        {!editing ? (
+          <>
+            <dl className="mt-6 grid gap-4 border-t border-mm-border pt-5 sm:grid-cols-2">
+              {viewFields.map((field) => (
+                <FieldRow
+                  key={`${field.label}-${field.value}`}
+                  label={field.label}
+                  value={field.value}
+                />
+              ))}
+            </dl>
+            <button
+              type="button"
+              onClick={() => {
+                setDraft(buildDraft(profile));
+                setEditing(true);
+                setSaved(false);
               }}
+              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-[var(--mm-radius-lg)] bg-mm-teal px-5 text-[0.875rem] font-semibold text-white shadow-mm-teal"
+            >
+              Edit Profile
+            </button>
+            {saved ? (
+              <p className="mt-3 text-[0.8125rem] font-medium text-mm-teal-700">
+                Profile updated.
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <form className="mt-6 space-y-4 border-t border-mm-border pt-5" onSubmit={onSave}>
+            <Input
+              label="Full Name"
+              name="fullName"
+              value={draft.fullName || ""}
+              onChange={(e) =>
+                setDraft((prev) => ({ ...prev, fullName: e.target.value }))
+              }
+              required
             />
-          </div>
-
-          <div className="relative px-6 pb-8 sm:px-8 lg:px-10">
-            <div className="-mt-16 flex flex-col gap-6 lg:-mt-20 lg:flex-row lg:items-end lg:justify-between">
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
-                <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-[1.5rem] border-[5px] border-mm-white bg-mm-navy text-3xl font-semibold text-white shadow-mm-md sm:h-36 sm:w-36 sm:text-4xl">
-                  {profile.initials}
-                </div>
-                <ProfilePassport />
-              </div>
-
-              <div className="flex flex-wrap gap-2.5 lg:pb-1">
-                <a
-                  href="#summary"
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--mm-radius-lg)] bg-mm-teal px-4 text-[0.875rem] font-semibold text-white shadow-mm-teal transition-[transform,background] duration-[var(--mm-duration)] hover:-translate-y-px hover:bg-mm-teal-700"
-                >
-                  Edit Profile
-                </a>
-                <DownloadCvButton />
-                <ShareButton label="Share Profile" />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Profile Strength */}
-        <Card className="p-6 sm:p-8 lg:p-9">
-          <div className="grid gap-8 lg:grid-cols-[auto_1fr] lg:items-start lg:gap-12">
-            <div className="flex justify-center lg:justify-start">
-              <CircularProgress value={profile.strength.score} />
-            </div>
-            <div>
-              <Label>Profile strength</Label>
-              <h2 className="mt-2 font-[family-name:var(--mm-font-display)] text-[1.75rem] tracking-[-0.02em] text-mm-navy">
-                Credibility that hospitals can trust
-              </h2>
-              <Body className="mt-3 max-w-xl">{profile.strength.summary}</Body>
-
-              <div className="mt-8 grid gap-6 md:grid-cols-2">
-                <div>
-                  <p className="text-[0.8125rem] font-semibold text-mm-navy">
-                    Completed
-                  </p>
-                  <ul className="mt-3 space-y-2.5">
-                    {profile.strength.completed.map((item) => (
-                      <li key={item.label} className="flex gap-2.5">
-                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-mm-teal text-white">
-                          <Check size={11} strokeWidth={2.5} />
-                        </span>
-                        <span>
-                          <span className="block text-[0.875rem] font-medium text-mm-navy">
-                            {item.label}
-                          </span>
-                          <Caption>{item.detail}</Caption>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-[0.8125rem] font-semibold text-mm-navy">
-                    Missing
-                  </p>
-                  <ul className="mt-3 space-y-2.5">
-                    {profile.strength.missing.map((item) => (
-                      <li
-                        key={item.label}
-                        className="rounded-[var(--mm-radius-lg)] border border-mm-warning-50 bg-mm-warning-50/60 px-3.5 py-3"
-                      >
-                        <span className="block text-[0.875rem] font-medium text-mm-warning-700">
-                          {item.label}
-                        </span>
-                        <Caption className="mt-0.5 text-mm-warning-700/70">
-                          {item.detail}
-                        </Caption>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="mt-8 rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-gray-50 p-5">
-                <p className="text-[0.8125rem] font-semibold text-mm-navy">
-                  Recommendations to improve
-                </p>
-                <ul className="mt-3 space-y-2">
-                  {profile.strength.recommendations.map((tip) => (
-                    <li
-                      key={tip}
-                      className="flex gap-2 text-[0.875rem] leading-relaxed text-mm-text-secondary"
-                    >
-                      <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-mm-teal" />
-                      {tip}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Professional Summary */}
-        <ProfileSection
-          id="summary"
-          title="Professional Summary"
-          description="Your narrative, goals, and preferences"
-        >
-          <div className="space-y-8">
-            <div>
-              <CardTitle as="h3">Bio</CardTitle>
-              <Body className="mt-3 max-w-3xl">{profile.summary.bio}</Body>
-            </div>
-            <div>
-              <CardTitle as="h3">Career goals</CardTitle>
-              <Body className="mt-3 max-w-3xl">
-                {profile.summary.careerGoals}
-              </Body>
-            </div>
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div>
-                <CardTitle as="h3">Preferred specialties</CardTitle>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {profile.summary.preferredSpecialties.map((item) => (
-                    <Badge key={item} tone="teal">
-                      {item}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <CardTitle as="h3">Preferred cities</CardTitle>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {profile.summary.preferredCities.map((item) => (
-                    <Badge key={item} tone="navy">
-                      {item}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </ProfileSection>
-
-        {/* Education */}
-        <ProfileSection id="education" title="Education" addLabel="Add education">
-          <ul className="space-y-4">
-            {profile.education.map((item) => (
-              <li
-                key={item.id}
-                className="rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-gray-50 p-5"
-              >
-                <div className="flex gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--mm-radius-md)] bg-mm-white text-mm-teal shadow-mm-xs">
-                    <GraduationCap size={18} strokeWidth={1.75} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[0.9375rem] font-semibold text-mm-navy">
-                      {item.degree}
-                    </p>
-                    <p className="mt-1 text-[0.875rem] text-mm-text-secondary">
-                      {item.university}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[0.8125rem] text-mm-text-muted">
-                      <span>Graduation {item.year}</span>
-                      <span>GPA {item.gpa}</span>
-                    </div>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </ProfileSection>
-
-        {/* Clinical Experience */}
-        <ProfileSection
-          id="clinical"
-          title="Clinical Experience"
-          addLabel="Add experience"
-        >
-          <ul className="space-y-5">
-            {profile.clinicalExperience.map((item) => (
-              <li
-                key={item.id}
-                className="rounded-[var(--mm-radius-xl)] border border-mm-border p-5 sm:p-6"
-              >
-                <div className="flex gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--mm-radius-md)] bg-mm-teal-50 text-mm-teal">
-                    <Briefcase size={18} strokeWidth={1.75} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[0.9375rem] font-semibold text-mm-navy">
-                      {item.title}
-                    </p>
-                    <p className="mt-1 text-[0.875rem] text-mm-text-secondary">
-                      {item.hospital}
-                    </p>
-                    <Caption className="mt-1">{item.duration}</Caption>
-                    <ul className="mt-4 space-y-2">
-                      {item.responsibilities.map((line) => (
-                        <li
-                          key={line}
-                          className="flex gap-2 text-[0.875rem] leading-relaxed text-mm-text-secondary"
-                        >
-                          <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-mm-teal" />
-                          {line}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </ProfileSection>
-
-        {/* Research */}
-        <ProfileSection id="research" title="Research" addLabel="Add project">
-          <ul className="space-y-4">
-            {profile.research.map((item) => (
-              <li
-                key={item.id}
-                className="flex flex-col gap-3 rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-gray-50 p-5 sm:flex-row sm:items-start sm:justify-between"
-              >
-                <div>
-                  <p className="text-[0.9375rem] font-semibold text-mm-navy">
-                    {item.title}
-                  </p>
-                  <Caption className="mt-1">
-                    {item.role} · {item.year}
-                  </Caption>
-                </div>
-                <Badge tone={item.status === "Active" ? "teal" : "neutral"}>
-                  {item.status}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        </ProfileSection>
-
-        {/* Publications */}
-        <ProfileSection
-          id="publications"
-          title="Publications"
-          addLabel="Add publication"
-        >
-          <ul className="space-y-4">
-            {profile.publications.map((item) => (
-              <li
-                key={item.id}
-                className="rounded-[var(--mm-radius-xl)] border border-mm-border p-5"
-              >
-                <div className="flex gap-3">
-                  <BookOpen
-                    size={18}
-                    strokeWidth={1.75}
-                    className="mt-0.5 shrink-0 text-mm-teal"
-                  />
-                  <div>
-                    <p className="text-[0.9375rem] font-semibold text-mm-navy">
-                      {item.title}
-                    </p>
-                    <Caption className="mt-1">
-                      {item.venue} · {item.type} · {item.year}
-                    </Caption>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </ProfileSection>
-
-        {/* Courses */}
-        <ProfileSection
-          id="courses"
-          title="Courses & Certifications"
-          addLabel="Add course"
-        >
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {profile.courses.map((item) => (
-              <li
-                key={item.id}
-                className="rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-gray-50 p-5"
-              >
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[var(--mm-radius-md)] bg-mm-white text-mm-teal shadow-mm-xs">
-                  <Award size={18} strokeWidth={1.75} />
-                </div>
-                <p className="text-[0.875rem] font-semibold text-mm-navy">
-                  {item.title}
-                </p>
-                <Caption className="mt-1">
-                  {item.provider} · {item.year}
-                </Caption>
-                <Badge tone="navy" className="mt-3">
-                  {item.type}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        </ProfileSection>
-
-        {/* Volunteer */}
-        <ProfileSection
-          id="volunteer"
-          title="Volunteer Experience"
-          addLabel="Add volunteer work"
-        >
-          {profile.volunteer.length === 0 ? (
-            <EmptyState
-              title="No volunteer experience yet"
-              description="Highlight community clinics, health campaigns, or outreach work that shows commitment beyond the ward."
-              actionLabel="Add volunteer experience"
-              icon={<HeartHandshake size={18} strokeWidth={1.75} />}
+            <Input
+              label="Mobile Number"
+              name="mobile"
+              value={draft.mobile || ""}
+              onChange={(e) =>
+                setDraft((prev) => ({ ...prev, mobile: e.target.value }))
+              }
+              required
             />
-          ) : null}
-        </ProfileSection>
+            <Input
+              label="Personal Email"
+              type="email"
+              name="email"
+              value={draft.email || ""}
+              onChange={(e) =>
+                setDraft((prev) => ({ ...prev, email: e.target.value }))
+              }
+              required
+            />
+            <Input
+              label="Institutional Email"
+              type="email"
+              name="institutionEmail"
+              value={draft.institutionEmail || ""}
+              onChange={(e) =>
+                setDraft((prev) => ({
+                  ...prev,
+                  institutionEmail: e.target.value,
+                }))
+              }
+              required
+            />
 
-        {/* Leadership */}
-        <ProfileSection
-          id="leadership"
-          title="Leadership Experience"
-          addLabel="Add leadership"
-        >
-          <ul className="space-y-4">
-            {profile.leadership.map((item) => (
-              <li
-                key={item.id}
-                className="rounded-[var(--mm-radius-xl)] border border-mm-border p-5 sm:p-6"
-              >
-                <div className="flex gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--mm-radius-md)] bg-mm-navy text-white">
-                    <Users size={18} strokeWidth={1.75} />
-                  </div>
-                  <div>
-                    <p className="text-[0.9375rem] font-semibold text-mm-navy">
-                      {item.title}
-                    </p>
-                    <Caption className="mt-1">
-                      {item.organization} · {item.duration}
-                    </Caption>
-                    <Body className="mt-3 text-[0.875rem]">
-                      {item.description}
-                    </Body>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </ProfileSection>
-
-        {/* Skills */}
-        <ProfileSection id="skills" title="Skills" addLabel="Add skill">
-          <div className="grid gap-8">
-            {(
-              [
-                ["Medical skills", profile.skills.medical],
-                ["Technical skills", profile.skills.technical],
-                ["Soft skills", profile.skills.soft],
-              ] as const
-            ).map(([label, items]) => (
-              <div key={label}>
-                <CardTitle as="h3">{label}</CardTitle>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {items.map((skill) => (
-                    <Badge key={skill} tone="teal">
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </ProfileSection>
-
-        {/* Languages */}
-        <ProfileSection id="languages" title="Languages" addLabel="Add language">
-          <ul className="grid gap-3 sm:grid-cols-3">
-            {profile.languages.map((lang) => (
-              <li
-                key={lang.id}
-                className="rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-gray-50 p-5"
-              >
-                <div className="mb-3 text-mm-teal">
-                  <Languages size={18} strokeWidth={1.75} />
-                </div>
-                <p className="text-[0.875rem] font-semibold text-mm-navy">
-                  {lang.name}
-                </p>
-                <Caption className="mt-1">{lang.level}</Caption>
-              </li>
-            ))}
-          </ul>
-        </ProfileSection>
-
-        {/* Documents */}
-        <ProfileSection id="documents" title="Documents" addLabel="Upload">
-          <ul className="space-y-3">
-            {profile.documents.map((doc) => (
-              <li
-                key={doc.id}
-                className="flex flex-col gap-3 rounded-[var(--mm-radius-xl)] border border-mm-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-[var(--mm-radius-md)] bg-mm-gray-50 text-mm-navy">
-                    <FileText size={18} strokeWidth={1.75} />
-                  </div>
-                  <div>
-                    <p className="text-[0.875rem] font-semibold text-mm-navy">
-                      {doc.name}
-                    </p>
-                    <Caption className="mt-0.5">Updated {doc.updated}</Caption>
-                  </div>
-                </div>
-                <Badge tone={doc.status === "Uploaded" ? "success" : "warning"}>
-                  {doc.status}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        </ProfileSection>
-
-        <StudentEvaluationsSection />
-
-        {/* Eligibility */}
-        <ProfileSection
-          id="eligibility"
-          title="Eligibility"
-          description="Licensure and life-support credentials"
-          addLabel="Add credential"
-        >
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {profile.eligibility.map((item) => (
-              <li
-                key={item.id}
-                className="rounded-[var(--mm-radius-xl)] border border-mm-border p-5"
-              >
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-[var(--mm-radius-md)] bg-mm-teal-50 text-mm-teal">
-                    <ShieldCheck size={18} strokeWidth={1.75} />
-                  </div>
-                  <Badge
-                    tone={
-                      item.status === "Verified" || item.status === "Valid"
-                        ? "success"
-                        : "warning"
+            {stage === "medical-student" || stage === "intern" ? (
+              <>
+                <Input
+                  label="University"
+                  name="university"
+                  value={draft.university || ""}
+                  onChange={(e) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      university: e.target.value,
+                    }))
+                  }
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    label="Current year"
+                    name="currentYear"
+                    value={draft.currentYear || ""}
+                    onChange={(e) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        currentYear: e.target.value,
+                      }))
                     }
-                  >
-                    {item.status}
-                  </Badge>
+                  />
+                  <Input
+                    label="Total years"
+                    name="totalYears"
+                    value={draft.totalYears || ""}
+                    onChange={(e) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        totalYears: e.target.value,
+                      }))
+                    }
+                  />
                 </div>
-                <p className="text-[0.875rem] font-semibold text-mm-navy">
-                  {item.name}
-                </p>
-                <Caption className="mt-1">{item.detail}</Caption>
-              </li>
-            ))}
-          </ul>
-        </ProfileSection>
+              </>
+            ) : null}
+
+            {stage === "advanced-training" ||
+            stage === "resident" ||
+            stage === "fellow" ? (
+              <>
+                <Input
+                  label="Hospital or Training Institution"
+                  name="trainingInstitution"
+                  value={draft.trainingInstitution || ""}
+                  onChange={(e) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      trainingInstitution: e.target.value,
+                    }))
+                  }
+                />
+                <Input
+                  label="Specialty"
+                  name="specialty"
+                  value={draft.specialty || ""}
+                  onChange={(e) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      specialty: e.target.value,
+                    }))
+                  }
+                />
+                {stage === "fellow" ? (
+                  <Input
+                    label="Subspecialty"
+                    name="subspecialty"
+                    value={draft.subspecialty || ""}
+                    onChange={(e) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        subspecialty: e.target.value,
+                      }))
+                    }
+                  />
+                ) : null}
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    label="Current year"
+                    name="currentYear"
+                    value={draft.currentYear || ""}
+                    onChange={(e) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        currentYear: e.target.value,
+                      }))
+                    }
+                  />
+                  <Input
+                    label="Total years"
+                    name="totalYears"
+                    value={draft.totalYears || ""}
+                    onChange={(e) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        totalYears: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </>
+            ) : null}
+
+            {stage === "medical-practice" ? (
+              <>
+                <Input
+                  label="Specialty"
+                  name="specialty"
+                  value={draft.specialty || ""}
+                  onChange={(e) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      specialty: e.target.value,
+                    }))
+                  }
+                />
+                <Input
+                  label="Subspecialty"
+                  name="subspecialty"
+                  value={draft.subspecialty || ""}
+                  onChange={(e) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      subspecialty: e.target.value,
+                    }))
+                  }
+                />
+                <Input
+                  label="Current Institution"
+                  name="trainingInstitution"
+                  value={draft.trainingInstitution || ""}
+                  onChange={(e) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      trainingInstitution: e.target.value,
+                    }))
+                  }
+                />
+              </>
+            ) : null}
+
+            <p className="text-[0.8125rem] text-mm-text-muted">
+              Healthcare Field and Journey Stage stay tied to your onboarding
+              path in this prototype.
+            </p>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="submit"
+                className="inline-flex min-h-11 flex-1 items-center justify-center rounded-[var(--mm-radius-lg)] bg-mm-teal px-5 text-[0.875rem] font-semibold text-white shadow-mm-teal"
+              >
+                Save changes
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className={cn(
+                  "inline-flex min-h-11 items-center justify-center rounded-[var(--mm-radius-lg)] border border-mm-border bg-mm-white px-5 text-[0.875rem] font-semibold text-mm-navy",
+                )}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+        </section>
       </div>
     </AppShell>
   );
