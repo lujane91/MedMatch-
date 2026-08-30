@@ -13,7 +13,12 @@ export default function CreateAccountPage() {
   const { setAccountBasics } = useInternStore();
   const { resetForNewAccount } = useSubscriptionStore();
   const [fullName, setFullName] = useState("Amina Hassan");
-  const [email, setEmail] = useState("amina.hassan@medmatch.edu");
+  const [personalEmail, setPersonalEmail] = useState(
+    "amina.hassan@medmatch.edu",
+  );
+  const [institutionEmail, setInstitutionEmail] = useState(
+    "amina.hassan@university.edu.sa",
+  );
   const [mobile, setMobile] = useState("+966 50 000 0000");
   const [password, setPassword] = useState("password123");
   const [confirm, setConfirm] = useState("password123");
@@ -21,7 +26,12 @@ export default function CreateAccountPage() {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim() || !email.trim() || !mobile.trim()) {
+    if (
+      !fullName.trim() ||
+      !personalEmail.trim() ||
+      !institutionEmail.trim() ||
+      !mobile.trim()
+    ) {
       setError("Please complete all required fields.");
       return;
     }
@@ -34,14 +44,19 @@ export default function CreateAccountPage() {
       return;
     }
     resetForNewAccount();
-    setAccountBasics({ fullName: fullName.trim(), email, mobile, password });
-    router.push("/onboarding/applying-for");
+    setAccountBasics({
+      fullName: fullName.trim(),
+      email: personalEmail.trim(),
+      mobile,
+      password,
+    });
+    router.push("/onboarding/nafath");
   };
 
   return (
     <AuthShell
       title="Create account"
-      subtitle="Enter your details to start planning your internship year."
+      subtitle="Create your MedJourney account."
       panelTitle="Your internship journey starts here"
       panelBody="Create an account, choose your training stage, and build a clear one-year rotation plan."
       footer={
@@ -65,11 +80,21 @@ export default function CreateAccountPage() {
           required
         />
         <Input
-          label="Email"
+          label="Personal email"
           type="email"
-          name="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          name="personalEmail"
+          value={personalEmail}
+          onChange={(e) => setPersonalEmail(e.target.value)}
+          hint="Use an email you will always have access to."
+          required
+        />
+        <Input
+          label="University or work email"
+          type="email"
+          name="institutionEmail"
+          value={institutionEmail}
+          onChange={(e) => setInstitutionEmail(e.target.value)}
+          hint="Used to verify your university or healthcare institution."
           required
         />
         <Input
