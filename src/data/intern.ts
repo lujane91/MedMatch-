@@ -6,7 +6,14 @@ export type HealthcareField =
   | "allied"
   | "other";
 
-export type TrainingStage = "intern" | "residency" | "fellowship";
+export type TrainingStage =
+  | "medical-student"
+  | "intern"
+  | "resident"
+  | "fellow"
+  | "medical-practice"
+  | "residency"
+  | "fellowship";
 
 export type ApplicationStatus =
   | "Draft"
