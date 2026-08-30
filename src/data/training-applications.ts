@@ -7,59 +7,78 @@
 
 import type { HealthcareField, TrainingStage } from "@/data/intern";
 import { resolveStage } from "@/data/journey-dashboard";
+import type {
+  TrainingApplicationType,
+  TrainingFee,
+} from "@/data/training-opportunities";
+import {
+  MEDJOURNEY_APPLICATION_FEE_SAR,
+  getOpportunityById,
+} from "@/data/training-opportunities";
+import type { TrainingDocumentType } from "@/data/training-documents";
 
-export type TrainingApplicationType =
-  | "summer-elective"
-  | "internship-rotation"
-  | "advanced-training"
-  | "external-rotation";
+export type { TrainingApplicationType, TrainingFee };
 
+/**
+ * Application progression for hospital-compatible workflow:
+ * Draft → Submitted → Under Review → Accepted | Waitlisted | Declined
+ * Waitlisted may later become Accepted or Declined.
+ * Accepted training later becomes Completed.
+ */
 export type TrainingApplicationStatus =
-  | "Pending"
-  | "Accepted"
+  | "Draft"
+  | "Submitted"
+  | "Under Review"
   | "Waitlisted"
+  | "Accepted"
   | "Declined"
   | "Completed";
 
-export type TrainingFee =
-  | { kind: "none" }
-  | { kind: "fee"; amountSar: number };
+export type TrainingFeeStatus = "Not Required" | "Pending" | "Paid (Demo)";
+
+export type ApplicationDocumentLink = {
+  requirementId: string;
+  documentType: TrainingDocumentType;
+  label: string;
+  required: boolean;
+  userDocumentId: string | null;
+  status: "Uploaded" | "Missing" | "Expired" | "Optional";
+};
 
 export type TrainingApplication = {
   id: string;
-  /** Applicant email or profile key for prototype filtering. */
   applicantKey: string;
+  opportunityId: string;
   trainingType: TrainingApplicationType;
   journeyStage: TrainingStage;
   healthcareField: HealthcareField | null;
+  hospital: string;
+  city: string;
+  specialty: string;
+  subspecialty: string;
   month: string;
   startDate: string;
   endDate: string;
-  hospital: string;
-  specialty: string;
-  subspecialty: string;
-  fee: TrainingFee;
-  status: TrainingApplicationStatus;
+  datesWereFlexible: boolean;
+  documents: ApplicationDocumentLink[];
+  requirementsReady: boolean;
+  requiredComplete: number;
+  requiredTotal: number;
+  missingRequired: string[];
+  applicationStatus: TrainingApplicationStatus;
+  medjourneyApplicationFeeSar: number;
+  hospitalFee: TrainingFee;
+  feeStatus: TrainingFeeStatus;
+  remainingActions: string[];
+  evaluationReceived: boolean;
+  certificateAvailable: boolean;
+  stampEarned: boolean;
   /** Reserved for future hospital review side. */
   hospitalReviewNote: string;
+  submittedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
-
-export const TRAINING_MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-] as const;
 
 export function trainingTypeForStage(
   stage: TrainingStage | null,
@@ -93,58 +112,17 @@ export function trainingTypeLabel(type: TrainingApplicationType) {
   }
 }
 
-export function applyCtaLabel(type: TrainingApplicationType) {
+export function findTrainingTitle(type: TrainingApplicationType) {
   switch (type) {
     case "summer-elective":
-      return "Apply for a Summer Elective";
+      return "Find Summer Electives";
     case "internship-rotation":
-      return "Apply for an Internship Rotation";
+      return "Find Internship Rotations";
     case "advanced-training":
-      return "Apply for Advanced Training";
+      return "Find Training Opportunities";
     case "external-rotation":
-      return "Apply for an External Rotation";
+      return "Find External Rotations";
   }
-}
-
-export function formatTrainingFee(fee: TrainingFee) {
-  if (fee.kind === "none") return "No Application Fee";
-  return `Application Fee · ${fee.amountSar} SAR`;
-}
-
-export function formatTrainingFeeShort(fee: TrainingFee) {
-  if (fee.kind === "none") return "No Application Fee";
-  return `${fee.amountSar} SAR`;
-}
-
-export function formatDateRange(startDate: string, endDate: string) {
-  const start = formatDisplayDate(startDate);
-  const end = formatDisplayDate(endDate);
-  if (!start || !end) return "";
-  return `${start} to ${end}`;
-}
-
-function formatDisplayDate(iso: string) {
-  if (!iso) return "";
-  const date = new Date(`${iso}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-/** Prototype fee rule: some sample hospitals charge 100 SAR. */
-export function demoFeeForHospital(hospital: string): TrainingFee {
-  const paidHosts = [
-    "King Faisal Specialist Hospital and Research Centre Riyadh",
-    "Johns Hopkins Aramco Healthcare",
-    "Dr. Sulaiman Al Habib Olaya Medical Complex",
-  ];
-  if (paidHosts.some((name) => hospital === name || hospital.includes("Faisal Specialist"))) {
-    return { kind: "fee", amountSar: 100 };
-  }
-  return { kind: "none" };
 }
 
 export function createTrainingApplicationId() {
@@ -153,37 +131,63 @@ export function createTrainingApplicationId() {
 
 export type NewTrainingApplicationInput = {
   applicantKey: string;
-  trainingType: TrainingApplicationType;
+  opportunityId: string;
   journeyStage: TrainingStage;
   healthcareField: HealthcareField | null;
-  month: string;
-  startDate: string;
-  endDate: string;
-  hospital: string;
-  specialty: string;
-  subspecialty?: string;
-  fee: TrainingFee;
+  month?: string;
+  startDate?: string;
+  endDate?: string;
+  documents: ApplicationDocumentLink[];
 };
 
 export function buildTrainingApplication(
   input: NewTrainingApplicationInput,
 ): TrainingApplication {
+  const opportunity = getOpportunityById(input.opportunityId);
+  if (!opportunity) {
+    throw new Error("Training opportunity not found");
+  }
+
+  const required = input.documents.filter((d) => d.required);
+  const requiredComplete = required.filter((d) => d.status === "Uploaded")
+    .length;
+  const missingRequired = required
+    .filter((d) => d.status !== "Uploaded")
+    .map((d) => d.label);
+  const requirementsReady = missingRequired.length === 0;
+
   const now = new Date().toISOString();
   return {
     id: createTrainingApplicationId(),
     applicantKey: input.applicantKey,
-    trainingType: input.trainingType,
+    opportunityId: opportunity.id,
+    trainingType: opportunity.trainingType,
     journeyStage: input.journeyStage,
     healthcareField: input.healthcareField,
-    month: input.month,
-    startDate: input.startDate,
-    endDate: input.endDate,
-    hospital: input.hospital.trim(),
-    specialty: input.specialty.trim(),
-    subspecialty: input.subspecialty?.trim() || "",
-    fee: input.fee,
-    status: "Pending",
+    hospital: opportunity.hospital,
+    city: opportunity.city,
+    specialty: opportunity.specialty,
+    subspecialty: opportunity.subspecialty,
+    month: input.month?.trim() || opportunity.month,
+    startDate: input.startDate || opportunity.startDate,
+    endDate: input.endDate || opportunity.endDate,
+    datesWereFlexible: !opportunity.datesFixed,
+    documents: input.documents,
+    requirementsReady,
+    requiredComplete,
+    requiredTotal: required.length,
+    missingRequired,
+    applicationStatus: "Submitted",
+    medjourneyApplicationFeeSar:
+      opportunity.medjourneyApplicationFeeSar || MEDJOURNEY_APPLICATION_FEE_SAR,
+    hospitalFee: opportunity.hospitalFee,
+    feeStatus: "Paid (Demo)",
+    remainingActions: [],
+    evaluationReceived: false,
+    certificateAvailable: false,
+    stampEarned: false,
     hospitalReviewNote: "",
+    submittedAt: now,
     createdAt: now,
     updatedAt: now,
   };
@@ -194,10 +198,202 @@ export function statusToneClass(status: TrainingApplicationStatus) {
     case "Accepted":
     case "Completed":
       return "bg-mm-teal-50 text-mm-teal-700";
-    case "Pending":
+    case "Draft":
+    case "Submitted":
+    case "Under Review":
     case "Waitlisted":
       return "bg-amber-50 text-amber-800";
     case "Declined":
       return "bg-mm-error-50 text-mm-error-700";
   }
+}
+
+/** Demo applications so Upcoming / Completed tabs are testable. */
+export function buildSeedApplications(
+  applicantKey: string,
+): TrainingApplication[] {
+  const now = new Date().toISOString();
+  const cardio = getOpportunityById("opp-ms-kfshrc-cardio-july");
+  const peds = getOpportunityById("opp-ms-kfmc-peds-june");
+  const trauma = getOpportunityById("opp-re-kfshrc-trauma");
+  const internEm = getOpportunityById("opp-in-kfmc-em-nov");
+
+  const seeds: TrainingApplication[] = [];
+
+  if (cardio) {
+    seeds.push({
+      id: "ta-seed-accepted",
+      applicantKey,
+      opportunityId: cardio.id,
+      trainingType: cardio.trainingType,
+      journeyStage: "medical-student",
+      healthcareField: "medicine",
+      hospital: cardio.hospital,
+      city: cardio.city,
+      specialty: cardio.specialty,
+      subspecialty: "",
+      month: cardio.month,
+      startDate: cardio.startDate,
+      endDate: cardio.endDate,
+      datesWereFlexible: false,
+      documents: cardio.requirements.map((r) => ({
+        requirementId: r.id,
+        documentType: r.documentType,
+        label: r.label,
+        required: r.required,
+        userDocumentId: r.required ? "doc-seed-cv" : null,
+        status: r.required ? "Uploaded" : "Optional",
+      })),
+      requirementsReady: true,
+      requiredComplete: 5,
+      requiredTotal: 5,
+      missingRequired: [],
+      applicationStatus: "Accepted",
+      medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
+      hospitalFee: cardio.hospitalFee,
+      feeStatus: "Paid (Demo)",
+      remainingActions: [
+        "Upload Health Clearance",
+        "Sign Training Agreement",
+      ],
+      evaluationReceived: false,
+      certificateAvailable: false,
+      stampEarned: false,
+      hospitalReviewNote: "Accepted by hospital training office (demo).",
+      submittedAt: "2026-08-01T10:00:00.000Z",
+      createdAt: "2026-08-01T10:00:00.000Z",
+      updatedAt: now,
+    });
+  }
+
+  if (peds) {
+    seeds.push({
+      id: "ta-seed-completed",
+      applicantKey,
+      opportunityId: peds.id,
+      trainingType: peds.trainingType,
+      journeyStage: "medical-student",
+      healthcareField: "medicine",
+      hospital: peds.hospital,
+      city: peds.city,
+      specialty: peds.specialty,
+      subspecialty: "",
+      month: "June",
+      startDate: "2026-06-01",
+      endDate: "2026-06-26",
+      datesWereFlexible: false,
+      documents: peds.requirements.map((r) => ({
+        requirementId: r.id,
+        documentType: r.documentType,
+        label: r.label,
+        required: r.required,
+        userDocumentId: "doc-seed-cv",
+        status: "Uploaded",
+      })),
+      requirementsReady: true,
+      requiredComplete: 4,
+      requiredTotal: 4,
+      missingRequired: [],
+      applicationStatus: "Completed",
+      medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
+      hospitalFee: peds.hospitalFee,
+      feeStatus: "Paid (Demo)",
+      remainingActions: [],
+      evaluationReceived: true,
+      certificateAvailable: true,
+      stampEarned: true,
+      hospitalReviewNote: "",
+      submittedAt: "2026-04-10T10:00:00.000Z",
+      createdAt: "2026-04-10T10:00:00.000Z",
+      updatedAt: now,
+    });
+  }
+
+  if (internEm) {
+    seeds.push({
+      id: "ta-seed-under-review",
+      applicantKey,
+      opportunityId: internEm.id,
+      trainingType: internEm.trainingType,
+      journeyStage: "intern",
+      healthcareField: "medicine",
+      hospital: internEm.hospital,
+      city: internEm.city,
+      specialty: internEm.specialty,
+      subspecialty: "",
+      month: internEm.month,
+      startDate: internEm.startDate,
+      endDate: internEm.endDate,
+      datesWereFlexible: false,
+      documents: internEm.requirements.map((r) => ({
+        requirementId: r.id,
+        documentType: r.documentType,
+        label: r.label,
+        required: r.required,
+        userDocumentId: r.required ? "doc-seed-cv" : null,
+        status: r.required ? "Uploaded" : "Optional",
+      })),
+      requirementsReady: true,
+      requiredComplete: 6,
+      requiredTotal: 6,
+      missingRequired: [],
+      applicationStatus: "Under Review",
+      medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
+      hospitalFee: internEm.hospitalFee,
+      feeStatus: "Paid (Demo)",
+      remainingActions: [],
+      evaluationReceived: false,
+      certificateAvailable: false,
+      stampEarned: false,
+      hospitalReviewNote: "",
+      submittedAt: "2026-08-20T10:00:00.000Z",
+      createdAt: "2026-08-20T10:00:00.000Z",
+      updatedAt: now,
+    });
+  }
+
+  if (trauma) {
+    seeds.push({
+      id: "ta-seed-waitlisted",
+      applicantKey,
+      opportunityId: trauma.id,
+      trainingType: trauma.trainingType,
+      journeyStage: "resident",
+      healthcareField: "medicine",
+      hospital: trauma.hospital,
+      city: trauma.city,
+      specialty: trauma.specialty,
+      subspecialty: trauma.subspecialty,
+      month: trauma.month,
+      startDate: trauma.startDate,
+      endDate: trauma.endDate,
+      datesWereFlexible: false,
+      documents: trauma.requirements.map((r) => ({
+        requirementId: r.id,
+        documentType: r.documentType,
+        label: r.label,
+        required: r.required,
+        userDocumentId: r.required ? "doc-seed-cv" : null,
+        status: r.required ? "Uploaded" : "Optional",
+      })),
+      requirementsReady: true,
+      requiredComplete: 5,
+      requiredTotal: 5,
+      missingRequired: [],
+      applicationStatus: "Waitlisted",
+      medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
+      hospitalFee: trauma.hospitalFee,
+      feeStatus: "Paid (Demo)",
+      remainingActions: [],
+      evaluationReceived: false,
+      certificateAvailable: false,
+      stampEarned: false,
+      hospitalReviewNote: "Waitlisted pending capacity (demo).",
+      submittedAt: "2026-08-05T10:00:00.000Z",
+      createdAt: "2026-08-05T10:00:00.000Z",
+      updatedAt: now,
+    });
+  }
+
+  return seeds;
 }
