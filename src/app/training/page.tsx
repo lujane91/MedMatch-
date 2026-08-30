@@ -2,6 +2,6 @@
 
 import { JourneyDashboard } from "@/components/dashboard/JourneyDashboard";
 
-export default function DashboardPage() {
-  return <JourneyDashboard focus="overview" />;
+export default function TrainingPage() {
+  return <JourneyDashboard focus="training" />;
 }
