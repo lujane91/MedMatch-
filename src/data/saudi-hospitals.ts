@@ -124,3 +124,7 @@ export const SAUDI_HOSPITALS: SaudiHospital[] = [
 ];
 
 export const SAUDI_HOSPITAL_NAMES = SAUDI_HOSPITALS.map((item) => item.name);
+
+export const SAUDI_CITIES = Array.from(
+  new Set(SAUDI_HOSPITALS.map((item) => item.city)),
+).sort();

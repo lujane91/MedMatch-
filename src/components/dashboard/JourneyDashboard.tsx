@@ -6,11 +6,9 @@ import { AppShell } from "@/components/AppShell";
 import { DashboardIdentity } from "@/components/dashboard/DashboardIdentity";
 import { MyJourneyCard } from "@/components/dashboard/MyJourneyCard";
 import { NeedsAttention } from "@/components/dashboard/NeedsAttention";
-import {
-  CareerSummary,
-  ConferencesSummary,
-  ResearchSummary,
-} from "@/components/dashboard/SectionSummaries";
+import { ResearchWorkspace } from "@/components/dashboard/ResearchWorkspace";
+import { ConferencesWorkspace } from "@/components/dashboard/ConferencesWorkspace";
+import { CareerWorkspace } from "@/components/dashboard/CareerWorkspace";
 import { TrainingWorkspace } from "@/components/dashboard/TrainingWorkspace";
 import { DemoPersonaSwitcher } from "@/components/dashboard/DemoPersonaSwitcher";
 import { formatPlanPrice } from "@/data/platform-subscription-plan";
@@ -112,12 +110,9 @@ export function JourneyDashboard({
                 compact
               />
             ) : null}
-            <ResearchSummary items={config.research} />
-            <ConferencesSummary items={config.conferences} />
-            <CareerSummary
-              items={config.career}
-              locked={config.careerLocked}
-            />
+            <ResearchWorkspace profile={profile} compact />
+            <ConferencesWorkspace profile={profile} compact />
+            <CareerWorkspace profile={profile} compact />
             <DemoPersonaSwitcher />
           </>
         ) : null}
@@ -144,16 +139,13 @@ export function JourneyDashboard({
         ) : null}
 
         {focus === "research" ? (
-          <ResearchSummary items={config.research} />
+          <ResearchWorkspace profile={profile} />
         ) : null}
         {focus === "conferences" ? (
-          <ConferencesSummary items={config.conferences} />
+          <ConferencesWorkspace profile={profile} />
         ) : null}
         {focus === "career" ? (
-          <CareerSummary
-            items={config.career}
-            locked={config.careerLocked}
-          />
+          <CareerWorkspace profile={profile} />
         ) : null}
       </div>
     </AppShell>
