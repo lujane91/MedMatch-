@@ -6,10 +6,7 @@ import { Award, Briefcase, UserRound } from "lucide-react";
 import { InternOnboardingShell } from "@/components/intern/InternOnboardingShell";
 import type { ProfessionalLevel } from "@/data/intern";
 import { cn } from "@/lib/cn";
-import { continueToSubscriptionPayment } from "@/lib/continue-to-subscription";
 import { useInternStore } from "@/lib/intern-store";
-import { usePlatformSubscriptionPlanStore } from "@/lib/platform-subscription-plan-store";
-import { useSubscriptionStore } from "@/lib/subscription-store";
 
 const levels: {
   id: ProfessionalLevel;
@@ -35,10 +32,7 @@ const levels: {
 
 export default function ProfessionalLevelPage() {
   const router = useRouter();
-  const { hydrated, profile, setProfessionalLevel, completeOnboarding } =
-    useInternStore();
-  const { markUnpaidProgress } = useSubscriptionStore();
-  const { plan } = usePlatformSubscriptionPlanStore();
+  const { hydrated, profile, setProfessionalLevel } = useInternStore();
 
   useEffect(() => {
     if (!hydrated) return;
@@ -66,13 +60,7 @@ export default function ProfessionalLevelPage() {
               type="button"
               onClick={() => {
                 setProfessionalLevel(level.id);
-                continueToSubscriptionPayment({
-                  profile: { ...profile, professionalLevel: level.id },
-                  plan,
-                  completeOnboarding,
-                  markUnpaidProgress,
-                  router,
-                });
+                router.push("/create-account");
               }}
               className={cn(
                 "rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-surface p-5 text-left transition-[transform,border-color,box-shadow] duration-[var(--mm-duration)] hover:-translate-y-0.5 hover:border-mm-teal/40 hover:shadow-mm-sm sm:p-6",

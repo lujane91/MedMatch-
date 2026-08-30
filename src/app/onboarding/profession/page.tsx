@@ -11,10 +11,7 @@ import {
 import { InternOnboardingShell } from "@/components/intern/InternOnboardingShell";
 import type { HealthcareField } from "@/data/intern";
 import { cn } from "@/lib/cn";
-import { continueToSubscriptionPayment } from "@/lib/continue-to-subscription";
 import { useInternStore } from "@/lib/intern-store";
-import { usePlatformSubscriptionPlanStore } from "@/lib/platform-subscription-plan-store";
-import { useSubscriptionStore } from "@/lib/subscription-store";
 
 const fields: {
   id: HealthcareField;
@@ -50,9 +47,7 @@ const fields: {
 
 export default function ProfessionPage() {
   const router = useRouter();
-  const { profile, setField, completeOnboarding } = useInternStore();
-  const { markUnpaidProgress } = useSubscriptionStore();
-  const { plan } = usePlatformSubscriptionPlanStore();
+  const { profile, setField } = useInternStore();
 
   return (
     <InternOnboardingShell
@@ -77,13 +72,7 @@ export default function ProfessionPage() {
                   router.push("/onboarding/professional-level");
                   return;
                 }
-                continueToSubscriptionPayment({
-                  profile: { ...profile, field: field.id },
-                  plan,
-                  completeOnboarding,
-                  markUnpaidProgress,
-                  router,
-                });
+                router.push("/create-account");
               }}
               className={cn(
                 "rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-surface p-5 text-left transition-[transform,border-color,box-shadow] duration-[var(--mm-duration)] hover:-translate-y-0.5 hover:border-mm-teal/40 hover:shadow-mm-sm sm:p-6",

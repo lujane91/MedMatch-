@@ -57,12 +57,7 @@ export default function SubscriptionPayClient() {
   );
 
   const priceLabel = formatPlanPrice(catalogPlan);
-  const backHref = isRenew
-    ? "/billing"
-    : profile.trainingStage === "medical-practice" &&
-        profile.field === "medicine"
-      ? "/onboarding/professional-level"
-      : "/onboarding/profession";
+  const backHref = isRenew ? "/billing" : "/onboarding/nafath";
 
   async function runPayment(forceFail: boolean) {
     setError("");

@@ -5,20 +5,40 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { AuthShell } from "@/components/AuthShell";
+import { continueToSubscriptionPayment } from "@/lib/continue-to-subscription";
+import { useInternStore } from "@/lib/intern-store";
+import { usePlatformSubscriptionPlanStore } from "@/lib/platform-subscription-plan-store";
+import { useSubscriptionStore } from "@/lib/subscription-store";
 
 type NafathStep = "start" | "waiting" | "verified";
 
 export default function NafathVerificationPage() {
   const router = useRouter();
+  const { profile, completeOnboarding } = useInternStore();
+  const { markUnpaidProgress } = useSubscriptionStore();
+  const { plan } = usePlatformSubscriptionPlanStore();
   const [step, setStep] = useState<NafathStep>("start");
 
   useEffect(() => {
     if (step !== "verified") return;
     const timer = window.setTimeout(() => {
-      router.push("/onboarding/applying-for");
+      continueToSubscriptionPayment({
+        profile,
+        plan,
+        completeOnboarding,
+        markUnpaidProgress,
+        router,
+      });
     }, 1200);
     return () => window.clearTimeout(timer);
-  }, [router, step]);
+  }, [
+    completeOnboarding,
+    markUnpaidProgress,
+    plan,
+    profile,
+    router,
+    step,
+  ]);
 
   const subtitle =
     step === "start"

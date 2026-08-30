@@ -71,7 +71,15 @@ export type InternProfile = {
   trainingStage: TrainingStage | null;
   field: HealthcareField | null;
   professionalLevel: ProfessionalLevel | null;
+  institutionEmail: string;
   university: string;
+  currentYear: string;
+  internshipYear: string;
+  trainingInstitution: string;
+  specialty: string;
+  subspecialty: string;
+  residencyYear: string;
+  fellowshipYear: string;
   graduationYear: string;
   currentCity: string;
   preferredCities: string[];

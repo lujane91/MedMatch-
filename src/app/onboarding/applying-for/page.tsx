@@ -54,7 +54,7 @@ export default function ApplyingForPage() {
       stepId="stage"
       title="Where are you in your medical journey?"
       subtitle="Select your current stage."
-      backHref="/create-account"
+      backHref="/"
     >
       <div className="grid gap-3">
         {stages.map((stage) => {
