@@ -14,7 +14,7 @@ type NafathStep = "start" | "waiting" | "verified";
 
 export default function NafathVerificationPage() {
   const router = useRouter();
-  const { profile, completeOnboarding } = useInternStore();
+  const { profile, completeOnboarding, updateProfile } = useInternStore();
   const { markUnpaidProgress } = useSubscriptionStore();
   const { plan } = usePlatformSubscriptionPlanStore();
   const [step, setStep] = useState<NafathStep>("start");
@@ -22,8 +22,9 @@ export default function NafathVerificationPage() {
   useEffect(() => {
     if (step !== "verified") return;
     const timer = window.setTimeout(() => {
+      updateProfile({ identityVerified: true });
       continueToSubscriptionPayment({
-        profile,
+        profile: { ...profile, identityVerified: true },
         plan,
         completeOnboarding,
         markUnpaidProgress,
@@ -38,6 +39,7 @@ export default function NafathVerificationPage() {
     profile,
     router,
     step,
+    updateProfile,
   ]);
 
   const subtitle =
@@ -60,7 +62,7 @@ export default function NafathVerificationPage() {
             href="/create-account"
             className="font-semibold text-mm-teal transition-colors hover:text-mm-teal-700"
           >
-            Back to Create Account
+            Back to Complete Your Account
           </Link>
         </>
       }
@@ -85,7 +87,7 @@ export default function NafathVerificationPage() {
               25
             </p>
             <p className="mt-4 text-[0.9375rem] text-mm-text-muted">
-              Waiting for approval...
+              Waiting for approval
             </p>
           </div>
           <button

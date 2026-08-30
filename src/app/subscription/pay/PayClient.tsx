@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -44,6 +44,14 @@ export default function SubscriptionPayClient() {
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
 
+  useEffect(() => {
+    if (!internHydrated) return;
+    if (isRenew) return;
+    if (!profile.identityVerified) {
+      router.replace("/onboarding/nafath");
+    }
+  }, [internHydrated, isRenew, profile.identityVerified, router]);
+
   const livePlan = useMemo(
     () => ({
       planName: catalogPlan.planName,
@@ -61,6 +69,10 @@ export default function SubscriptionPayClient() {
 
   async function runPayment(forceFail: boolean) {
     setError("");
+    if (!isRenew && !profile.identityVerified) {
+      router.replace("/onboarding/nafath");
+      return;
+    }
     if (catalogPlan.status !== "Active") {
       setError("Subscriptions are not available right now.");
       return;

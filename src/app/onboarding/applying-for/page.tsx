@@ -47,7 +47,7 @@ const stages: {
 
 export default function ApplyingForPage() {
   const router = useRouter();
-  const { setTrainingStage } = useInternStore();
+  const { profile, setTrainingStage } = useInternStore();
 
   return (
     <InternOnboardingShell
@@ -59,6 +59,7 @@ export default function ApplyingForPage() {
       <div className="grid gap-3">
         {stages.map((stage) => {
           const Icon = stage.icon;
+          const selected = profile.trainingStage === stage.id;
           return (
             <button
               key={stage.id}
@@ -68,7 +69,10 @@ export default function ApplyingForPage() {
                 router.push("/onboarding/profession");
               }}
               className={cn(
-                "rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-surface p-5 text-left transition-[transform,border-color,box-shadow] duration-[var(--mm-duration)] hover:-translate-y-0.5 hover:border-mm-teal/40 hover:shadow-mm-sm sm:p-6",
+                "rounded-[var(--mm-radius-xl)] border bg-mm-surface p-5 text-left transition-[transform,border-color,box-shadow] duration-[var(--mm-duration)] hover:-translate-y-0.5 hover:border-mm-teal/40 hover:shadow-mm-sm sm:p-6",
+                selected
+                  ? "border-mm-teal shadow-mm-sm"
+                  : "border-mm-border",
               )}
             >
               <div className="flex items-center gap-4">

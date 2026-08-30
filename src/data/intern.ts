@@ -74,6 +74,7 @@ export type InternProfile = {
   institutionEmail: string;
   university: string;
   currentYear: string;
+  totalYears: string;
   internshipYear: string;
   trainingInstitution: string;
   specialty: string;
@@ -87,6 +88,7 @@ export type InternProfile = {
   internshipEnd: string;
   photoUploaded: boolean;
   cvUploaded: boolean;
+  identityVerified: boolean;
   onboardingComplete: boolean;
 };
 

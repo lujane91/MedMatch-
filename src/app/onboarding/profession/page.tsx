@@ -59,6 +59,7 @@ export default function ProfessionPage() {
       <div className="grid gap-3">
         {fields.map((field) => {
           const Icon = field.icon;
+          const selected = profile.field === field.id;
           return (
             <button
               key={field.id}
@@ -75,7 +76,10 @@ export default function ProfessionPage() {
                 router.push("/create-account");
               }}
               className={cn(
-                "rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-surface p-5 text-left transition-[transform,border-color,box-shadow] duration-[var(--mm-duration)] hover:-translate-y-0.5 hover:border-mm-teal/40 hover:shadow-mm-sm sm:p-6",
+                "rounded-[var(--mm-radius-xl)] border bg-mm-surface p-5 text-left transition-[transform,border-color,box-shadow] duration-[var(--mm-duration)] hover:-translate-y-0.5 hover:border-mm-teal/40 hover:shadow-mm-sm sm:p-6",
+                selected
+                  ? "border-mm-teal shadow-mm-sm"
+                  : "border-mm-border",
               )}
             >
               <div className="flex items-center gap-4">

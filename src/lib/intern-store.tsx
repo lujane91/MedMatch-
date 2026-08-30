@@ -63,6 +63,7 @@ const defaultProfile: InternProfile = {
   institutionEmail: "",
   university: "",
   currentYear: "",
+  totalYears: "",
   internshipYear: "",
   trainingInstitution: "",
   specialty: "",
@@ -76,6 +77,7 @@ const defaultProfile: InternProfile = {
   internshipEnd: dates.end,
   photoUploaded: false,
   cvUploaded: false,
+  identityVerified: false,
   onboardingComplete: false,
 };
 
@@ -146,6 +148,7 @@ export function InternProvider({ children }: { children: ReactNode }) {
           fullName: data.fullName,
           email: data.email,
           mobile: data.mobile,
+          identityVerified: false,
           onboardingComplete: false,
         },
       }));
@@ -193,7 +196,8 @@ export function InternProvider({ children }: { children: ReactNode }) {
       profile: {
         ...prev.profile,
         ...data,
-        trainingStage: "intern",
+        trainingStage:
+          data.trainingStage ?? prev.profile.trainingStage ?? "intern",
         onboardingComplete: true,
       },
     }));

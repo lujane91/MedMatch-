@@ -10,49 +10,49 @@ import { cn } from "@/lib/cn";
 import { useInternStore } from "@/lib/intern-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 
-const medicineYears = [
-  "Year 1",
-  "Year 2",
-  "Year 3",
-  "Year 4",
-  "Year 5",
-  "Year 6",
-] as const;
-
-const trainingYears = [
-  "Year 1",
-  "Year 2",
-  "Year 3",
-  "Year 4",
-  "Year 5",
+const yearOptions = [
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
 ] as const;
 
 function SelectField({
+  id,
   label,
-  name,
   value,
   onChange,
   options,
   required,
+  className,
 }: {
-  label: string;
-  name: string;
+  id: string;
+  label?: string;
   value: string;
   onChange: (value: string) => void;
   options: readonly string[];
   required?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="w-full">
-      <label
-        htmlFor={name}
-        className="mb-1.5 block text-[0.8125rem] font-medium text-mm-navy"
-      >
-        {label}
-      </label>
+    <div className={cn("w-full", className)}>
+      {label ? (
+        <label
+          htmlFor={id}
+          className="mb-1.5 block text-[0.8125rem] font-medium text-mm-navy"
+        >
+          {label}
+        </label>
+      ) : null}
       <select
-        id={name}
-        name={name}
+        id={id}
+        name={id}
         value={value}
         required={required}
         onChange={(e) => onChange(e.target.value)}
@@ -74,13 +74,57 @@ function SelectField({
   );
 }
 
-function requiresStageDetails(stage: TrainingStage | null) {
+function YearOutOfTotal({
+  label,
+  currentId,
+  totalId,
+  currentValue,
+  totalValue,
+  onCurrentChange,
+  onTotalChange,
+}: {
+  label: string;
+  currentId: string;
+  totalId: string;
+  currentValue: string;
+  totalValue: string;
+  onCurrentChange: (value: string) => void;
+  onTotalChange: (value: string) => void;
+}) {
+  return (
+    <div className="w-full">
+      <p className="mb-1.5 text-[0.8125rem] font-medium text-mm-navy">{label}</p>
+      <div className="flex items-center gap-2">
+        <SelectField
+          id={currentId}
+          value={currentValue}
+          onChange={onCurrentChange}
+          options={yearOptions}
+          required
+          className="flex-1"
+        />
+        <span className="shrink-0 text-[0.875rem] text-mm-text-muted">
+          out of
+        </span>
+        <SelectField
+          id={totalId}
+          value={totalValue}
+          onChange={onTotalChange}
+          options={yearOptions}
+          required
+          className="flex-1"
+        />
+      </div>
+    </div>
+  );
+}
+
+function needsYearProgress(stage: TrainingStage | null) {
   return (
     stage === "medical-student" ||
     stage === "intern" ||
     stage === "resident" ||
-    stage === "fellow" ||
-    stage === "medical-practice"
+    stage === "fellow"
   );
 }
 
@@ -102,20 +146,12 @@ export default function CreateAccountPage() {
   const [confirm, setConfirm] = useState("password123");
   const [university, setUniversity] = useState(profile.university || "");
   const [currentYear, setCurrentYear] = useState(profile.currentYear || "");
-  const [internshipYear, setInternshipYear] = useState(
-    profile.internshipYear || "Internship Year",
-  );
+  const [totalYears, setTotalYears] = useState(profile.totalYears || "");
   const [trainingInstitution, setTrainingInstitution] = useState(
     profile.trainingInstitution || "",
   );
   const [specialty, setSpecialty] = useState(profile.specialty || "");
   const [subspecialty, setSubspecialty] = useState(profile.subspecialty || "");
-  const [residencyYear, setResidencyYear] = useState(
-    profile.residencyYear || "",
-  );
-  const [fellowshipYear, setFellowshipYear] = useState(
-    profile.fellowshipYear || "",
-  );
   const [error, setError] = useState("");
 
   const stage = profile.trainingStage;
@@ -128,8 +164,22 @@ export default function CreateAccountPage() {
     }
     if (!profile.field) {
       router.replace("/onboarding/profession");
+      return;
     }
-  }, [hydrated, profile.field, profile.trainingStage, router]);
+    if (
+      profile.trainingStage === "medical-practice" &&
+      profile.field === "medicine" &&
+      !profile.professionalLevel
+    ) {
+      router.replace("/onboarding/professional-level");
+    }
+  }, [
+    hydrated,
+    profile.field,
+    profile.professionalLevel,
+    profile.trainingStage,
+    router,
+  ]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,30 +201,40 @@ export default function CreateAccountPage() {
       return;
     }
 
-    if (stage === "medical-student" && (!university.trim() || !currentYear)) {
-      setError("Please complete all required fields.");
-      return;
+    if (stage === "medical-student") {
+      if (!university.trim() || !currentYear || !totalYears) {
+        setError("Please complete all required fields.");
+        return;
+      }
     }
-    if (stage === "intern" && (!university.trim() || !internshipYear)) {
-      setError("Please complete all required fields.");
-      return;
+    if (stage === "intern") {
+      if (!university.trim() || !currentYear || !totalYears) {
+        setError("Please complete all required fields.");
+        return;
+      }
     }
-    if (
-      stage === "resident" &&
-      (!trainingInstitution.trim() || !specialty.trim() || !residencyYear)
-    ) {
-      setError("Please complete all required fields.");
-      return;
+    if (stage === "resident") {
+      if (
+        !trainingInstitution.trim() ||
+        !specialty.trim() ||
+        !currentYear ||
+        !totalYears
+      ) {
+        setError("Please complete all required fields.");
+        return;
+      }
     }
-    if (
-      stage === "fellow" &&
-      (!trainingInstitution.trim() ||
+    if (stage === "fellow") {
+      if (
+        !trainingInstitution.trim() ||
         !specialty.trim() ||
         !subspecialty.trim() ||
-        !fellowshipYear)
-    ) {
-      setError("Please complete all required fields.");
-      return;
+        !currentYear ||
+        !totalYears
+      ) {
+        setError("Please complete all required fields.");
+        return;
+      }
     }
     if (stage === "medical-practice" && !specialty.trim()) {
       setError("Please complete all required fields.");
@@ -193,9 +253,12 @@ export default function CreateAccountPage() {
       university:
         stage === "medical-student" || stage === "intern"
           ? university.trim()
-          : profile.university,
-      currentYear: stage === "medical-student" ? currentYear : "",
-      internshipYear: stage === "intern" ? internshipYear : "",
+          : "",
+      currentYear: needsYearProgress(stage) ? currentYear : "",
+      totalYears: needsYearProgress(stage) ? totalYears : "",
+      internshipYear: "",
+      residencyYear: stage === "resident" ? currentYear : "",
+      fellowshipYear: stage === "fellow" ? currentYear : "",
       trainingInstitution:
         stage === "resident" || stage === "fellow"
           ? trainingInstitution.trim()
@@ -207,8 +270,7 @@ export default function CreateAccountPage() {
           ? specialty.trim()
           : "",
       subspecialty: stage === "fellow" ? subspecialty.trim() : "",
-      residencyYear: stage === "resident" ? residencyYear : "",
-      fellowshipYear: stage === "fellow" ? fellowshipYear : "",
+      identityVerified: false,
     });
     router.push("/onboarding/nafath");
   };
@@ -216,10 +278,10 @@ export default function CreateAccountPage() {
   if (!hydrated || !stage || !profile.field) {
     return (
       <AuthShell
-        title="Create account"
-        subtitle="Create your MedJourney account."
-        panelTitle="Your MedJourney starts here"
-        panelBody="Create an account and continue your medical journey."
+        title="Complete your account"
+        subtitle="Enter your details to continue."
+        panelTitle="Complete your account"
+        panelBody="Enter your details to continue your MedJourney."
         footer={
           <>
             Already have an account?{" "}
@@ -237,12 +299,21 @@ export default function CreateAccountPage() {
     );
   }
 
+  const yearLabel =
+    stage === "medical-student"
+      ? "Current academic year"
+      : stage === "intern"
+        ? "Current internship year"
+        : stage === "resident"
+          ? "Current residency year"
+          : "Current fellowship year";
+
   return (
     <AuthShell
-      title="Create account"
-      subtitle="Create your MedJourney account."
-      panelTitle="Your MedJourney starts here"
-      panelBody="Create an account and continue your medical journey."
+      title="Complete your account"
+      subtitle="Enter your details to continue."
+      panelTitle="Complete your account"
+      panelBody="Enter your details to continue your MedJourney."
       footer={
         <>
           Already have an account?{" "}
@@ -264,135 +335,83 @@ export default function CreateAccountPage() {
           required
         />
         <Input
-          label="Personal email"
-          type="email"
-          name="personalEmail"
-          value={personalEmail}
-          onChange={(e) => setPersonalEmail(e.target.value)}
-          hint="Use an email you will always have access to."
-          required
-        />
-        <Input
-          label="University or work email"
-          type="email"
-          name="institutionEmail"
-          value={institutionEmail}
-          onChange={(e) => setInstitutionEmail(e.target.value)}
-          hint="Used to verify your university or healthcare institution."
-          required
-        />
-        <Input
           label="Mobile number"
           name="mobile"
           value={mobile}
           onChange={(e) => setMobile(e.target.value)}
           required
         />
+        <Input
+          label="Personal email"
+          type="email"
+          name="personalEmail"
+          value={personalEmail}
+          onChange={(e) => setPersonalEmail(e.target.value)}
+          hint="Your permanent MedJourney account email."
+          required
+        />
+        <Input
+          label="Institutional email"
+          type="email"
+          name="institutionEmail"
+          value={institutionEmail}
+          onChange={(e) => setInstitutionEmail(e.target.value)}
+          hint="Your current university, hospital, training or work email."
+          required
+        />
 
-        {requiresStageDetails(stage) ? (
-          <div className="space-y-4 border-t border-mm-border pt-4">
-            {stage === "medical-student" ? (
-              <>
-                <Input
-                  label="University name"
-                  name="university"
-                  value={university}
-                  onChange={(e) => setUniversity(e.target.value)}
-                  required
-                />
-                <SelectField
-                  label="Current year"
-                  name="currentYear"
-                  value={currentYear}
-                  onChange={setCurrentYear}
-                  options={medicineYears}
-                  required
-                />
-              </>
-            ) : null}
+        <div className="space-y-4 border-t border-mm-border pt-4">
+          {stage === "medical-student" ? (
+            <>
+              <Input
+                label="University name"
+                name="university"
+                value={university}
+                onChange={(e) => setUniversity(e.target.value)}
+                required
+              />
+              <YearOutOfTotal
+                label={yearLabel}
+                currentId="currentYear"
+                totalId="totalYears"
+                currentValue={currentYear}
+                totalValue={totalYears}
+                onCurrentChange={setCurrentYear}
+                onTotalChange={setTotalYears}
+              />
+            </>
+          ) : null}
 
-            {stage === "intern" ? (
-              <>
-                <Input
-                  label="University name"
-                  name="university"
-                  value={university}
-                  onChange={(e) => setUniversity(e.target.value)}
-                  required
-                />
-                <SelectField
-                  label="Internship year"
-                  name="internshipYear"
-                  value={internshipYear}
-                  onChange={setInternshipYear}
-                  options={["Internship Year"]}
-                  required
-                />
-              </>
-            ) : null}
+          {stage === "intern" ? (
+            <>
+              <Input
+                label="University name"
+                name="university"
+                value={university}
+                onChange={(e) => setUniversity(e.target.value)}
+                required
+              />
+              <YearOutOfTotal
+                label={yearLabel}
+                currentId="currentYear"
+                totalId="totalYears"
+                currentValue={currentYear}
+                totalValue={totalYears}
+                onCurrentChange={setCurrentYear}
+                onTotalChange={setTotalYears}
+              />
+            </>
+          ) : null}
 
-            {stage === "resident" ? (
-              <>
-                <Input
-                  label="Hospital or training institution"
-                  name="trainingInstitution"
-                  value={trainingInstitution}
-                  onChange={(e) => setTrainingInstitution(e.target.value)}
-                  required
-                />
-                <Input
-                  label="Specialty"
-                  name="specialty"
-                  value={specialty}
-                  onChange={(e) => setSpecialty(e.target.value)}
-                  required
-                />
-                <SelectField
-                  label="Residency year"
-                  name="residencyYear"
-                  value={residencyYear}
-                  onChange={setResidencyYear}
-                  options={trainingYears}
-                  required
-                />
-              </>
-            ) : null}
-
-            {stage === "fellow" ? (
-              <>
-                <Input
-                  label="Hospital or training institution"
-                  name="trainingInstitution"
-                  value={trainingInstitution}
-                  onChange={(e) => setTrainingInstitution(e.target.value)}
-                  required
-                />
-                <Input
-                  label="Specialty"
-                  name="specialty"
-                  value={specialty}
-                  onChange={(e) => setSpecialty(e.target.value)}
-                  required
-                />
-                <Input
-                  label="Subspecialty"
-                  name="subspecialty"
-                  value={subspecialty}
-                  onChange={(e) => setSubspecialty(e.target.value)}
-                  required
-                />
-                <SelectField
-                  label="Fellowship year"
-                  name="fellowshipYear"
-                  value={fellowshipYear}
-                  onChange={setFellowshipYear}
-                  options={trainingYears}
-                  required
-                />
-              </>
-            ) : null}
-
-            {stage === "medical-practice" ? (
+          {stage === "resident" ? (
+            <>
+              <Input
+                label="Hospital or training institution"
+                name="trainingInstitution"
+                value={trainingInstitution}
+                onChange={(e) => setTrainingInstitution(e.target.value)}
+                required
+              />
               <Input
                 label="Specialty"
                 name="specialty"
@@ -400,9 +419,63 @@ export default function CreateAccountPage() {
                 onChange={(e) => setSpecialty(e.target.value)}
                 required
               />
-            ) : null}
-          </div>
-        ) : null}
+              <YearOutOfTotal
+                label={yearLabel}
+                currentId="currentYear"
+                totalId="totalYears"
+                currentValue={currentYear}
+                totalValue={totalYears}
+                onCurrentChange={setCurrentYear}
+                onTotalChange={setTotalYears}
+              />
+            </>
+          ) : null}
+
+          {stage === "fellow" ? (
+            <>
+              <Input
+                label="Hospital or training institution"
+                name="trainingInstitution"
+                value={trainingInstitution}
+                onChange={(e) => setTrainingInstitution(e.target.value)}
+                required
+              />
+              <Input
+                label="Specialty"
+                name="specialty"
+                value={specialty}
+                onChange={(e) => setSpecialty(e.target.value)}
+                required
+              />
+              <Input
+                label="Subspecialty"
+                name="subspecialty"
+                value={subspecialty}
+                onChange={(e) => setSubspecialty(e.target.value)}
+                required
+              />
+              <YearOutOfTotal
+                label={yearLabel}
+                currentId="currentYear"
+                totalId="totalYears"
+                currentValue={currentYear}
+                totalValue={totalYears}
+                onCurrentChange={setCurrentYear}
+                onTotalChange={setTotalYears}
+              />
+            </>
+          ) : null}
+
+          {stage === "medical-practice" ? (
+            <Input
+              label="Current specialty"
+              name="specialty"
+              value={specialty}
+              onChange={(e) => setSpecialty(e.target.value)}
+              required
+            />
+          ) : null}
+        </div>
 
         <Input
           label="Password"
@@ -429,7 +502,7 @@ export default function CreateAccountPage() {
           type="submit"
           className="inline-flex min-h-11 w-full items-center justify-center rounded-[var(--mm-radius-lg)] bg-mm-teal px-[1.125rem] text-[0.875rem] font-semibold text-white shadow-mm-teal transition-[transform,background] duration-[var(--mm-duration)] hover:-translate-y-px hover:bg-mm-teal-700"
         >
-          Create Account
+          Continue
         </button>
       </form>
     </AuthShell>

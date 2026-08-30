@@ -80,7 +80,7 @@ export function LandingNav() {
             Sign In
           </Link>
           <Link
-            href="/create-account"
+            href="/onboarding/applying-for"
             className="landing-btn landing-btn-primary landing-btn-sm"
           >
             Create Account
@@ -131,7 +131,7 @@ export function LandingNav() {
                 Sign In
               </Link>
               <Link
-                href="/create-account"
+                href="/onboarding/applying-for"
                 onClick={() => setOpen(false)}
                 className="landing-btn landing-btn-primary w-full"
               >
