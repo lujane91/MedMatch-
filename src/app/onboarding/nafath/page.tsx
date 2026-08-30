@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
@@ -55,17 +54,7 @@ export default function NafathVerificationPage() {
       subtitle={subtitle}
       panelTitle="Verify your identity"
       panelBody="Continue with Nafath to verify your identity."
-      footer={
-        <>
-          Need help?{" "}
-          <Link
-            href="/create-account"
-            className="font-semibold text-mm-teal transition-colors hover:text-mm-teal-700"
-          >
-            Back to Complete Your Account
-          </Link>
-        </>
-      }
+      footer={null}
     >
       {step === "start" ? (
         <button
