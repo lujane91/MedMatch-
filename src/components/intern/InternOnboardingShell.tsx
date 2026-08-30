@@ -10,7 +10,6 @@ const steps = [
   { id: "stage", path: "/onboarding/applying-for", label: "Pathway" },
   { id: "field", path: "/onboarding/profession", label: "Profession" },
   { id: "level", path: "/onboarding/professional-level", label: "Level" },
-  { id: "review", path: "/onboarding/review", label: "Review" },
 ] as const;
 
 type InternOnboardingShellProps = {

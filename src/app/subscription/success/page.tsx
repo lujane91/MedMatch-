@@ -35,7 +35,7 @@ export default function SubscriptionSuccessPage() {
   return (
     <SubscriptionShell
       title="Account Created Successfully"
-      subtitle="Your MedJourney annual subscription is active."
+      subtitle="Your MedJourney monthly subscription is active."
     >
       <div className="rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-surface p-5 shadow-mm-sm sm:p-6">
         <dl className="space-y-4">

@@ -51,13 +51,18 @@ export default function SubscriptionPayClient() {
       durationMonths: catalogPlan.durationMonths,
       currency: catalogPlan.currency,
       features: catalogPlan.features,
-      shortName: "Annual Subscription",
+      shortName: "Monthly Subscription",
     }),
     [catalogPlan],
   );
 
   const priceLabel = formatPlanPrice(catalogPlan);
-  const backHref = isRenew ? "/billing" : "/onboarding/review";
+  const backHref = isRenew
+    ? "/billing"
+    : profile.trainingStage === "medical-practice" &&
+        profile.field === "medicine"
+      ? "/onboarding/professional-level"
+      : "/onboarding/profession";
 
   async function runPayment(forceFail: boolean) {
     setError("");
@@ -102,7 +107,7 @@ export default function SubscriptionPayClient() {
 
   if (!hydrated || !internHydrated || !planHydrated) {
     return (
-      <SubscriptionShell title="Annual Subscription">
+      <SubscriptionShell title="Monthly Subscription">
         <p className="text-sm text-mm-text-muted">Loading…</p>
       </SubscriptionShell>
     );
@@ -110,13 +115,13 @@ export default function SubscriptionPayClient() {
 
   return (
     <SubscriptionShell
-      title="Annual Subscription"
-      subtitle={`${priceLabel} per year · ${catalogPlan.durationMonths} months of access`}
+      title="Monthly Subscription"
+      subtitle={`${priceLabel} per month · ${catalogPlan.durationMonths} month of access`}
       backHref={backHref}
     >
       <div className="rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-surface p-5 shadow-mm-sm sm:p-6">
         <p className="text-[0.75rem] font-semibold uppercase tracking-[0.08em] text-mm-teal">
-          Annual Subscription
+          Monthly Subscription
         </p>
         <p className="mt-1 text-sm font-medium text-mm-navy">
           {catalogPlan.planName}
@@ -124,11 +129,11 @@ export default function SubscriptionPayClient() {
         <p className="mt-2 font-[family-name:var(--mm-font-display)] text-3xl font-semibold tracking-tight text-mm-navy">
           {priceLabel}
           <span className="ml-1 text-base font-medium text-mm-text-secondary">
-            / year
+            / month
           </span>
         </p>
         <p className="mt-1 text-sm text-mm-text-secondary">
-          {catalogPlan.durationMonths} months of access
+          {catalogPlan.durationMonths} month of access
         </p>
 
         <ul className="mt-5 space-y-2 border-t border-mm-border pt-5">
@@ -188,8 +193,8 @@ export default function SubscriptionPayClient() {
           onChange={(e) => setTermsAccepted(e.target.checked)}
         />
         <span className="text-sm leading-relaxed text-mm-text-secondary">
-          I agree to the MedJourney terms and conditions for the annual
-          internship subscription.
+          I agree to the MedJourney terms and conditions for the monthly
+          subscription.
         </span>
       </label>
 

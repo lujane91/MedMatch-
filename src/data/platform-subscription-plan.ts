@@ -34,10 +34,10 @@ export type PlatformSubscriberRecord = {
 
 /** Default plan — editable in Platform Admin; used until owner saves changes. */
 export const DEFAULT_PLATFORM_SUBSCRIPTION_PLAN: PlatformSubscriptionPlan = {
-  planName: "MedJourney Internship Annual Subscription",
-  price: 1000,
+  planName: "MedJourney Monthly Subscription",
+  price: 20,
   currency: "SAR",
-  durationMonths: 12,
+  durationMonths: 1,
   status: "Active",
   features: [
     "Browse hospitals and specialties",
