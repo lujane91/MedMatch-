@@ -29,6 +29,7 @@ export function continueToSubscriptionPayment({
   completeOnboarding({
     field: profile.field ?? "medicine",
     trainingStage: profile.trainingStage ?? "intern",
+    identityVerified: true,
   });
   markUnpaidProgress({
     planName: plan.planName,
