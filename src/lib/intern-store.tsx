@@ -17,6 +17,7 @@ import {
   type ApplicationStatus,
   type HealthcareField,
   type InternProfile,
+  type ProfessionalLevel,
   type Rotation,
   type TrainingStage,
 } from "@/data/intern";
@@ -39,6 +40,7 @@ type InternStore = InternState & {
   }) => void;
   setTrainingStage: (stage: TrainingStage) => void;
   setField: (field: HealthcareField) => void;
+  setProfessionalLevel: (level: ProfessionalLevel) => void;
   completeOnboarding: (data: Partial<InternProfile>) => void;
   upsertRotation: (rotation: Rotation) => void;
   updateRotation: (id: string, patch: Partial<Rotation>) => void;
@@ -57,6 +59,7 @@ const defaultProfile: InternProfile = {
   mobile: "",
   trainingStage: null,
   field: null,
+  professionalLevel: null,
   university: "",
   graduationYear: String(new Date().getFullYear()),
   currentCity: "",
@@ -145,14 +148,34 @@ export function InternProvider({ children }: { children: ReactNode }) {
   const setTrainingStage = useCallback((stage: TrainingStage) => {
     setState((prev) => ({
       ...prev,
-      profile: { ...prev.profile, trainingStage: stage },
+      profile: {
+        ...prev.profile,
+        trainingStage: stage,
+        professionalLevel:
+          stage === "medical-practice" ? prev.profile.professionalLevel : null,
+      },
     }));
   }, []);
 
   const setField = useCallback((field: HealthcareField) => {
     setState((prev) => ({
       ...prev,
-      profile: { ...prev.profile, field },
+      profile: {
+        ...prev.profile,
+        field,
+        professionalLevel:
+          prev.profile.trainingStage === "medical-practice" &&
+          field === "medicine"
+            ? prev.profile.professionalLevel
+            : null,
+      },
+    }));
+  }, []);
+
+  const setProfessionalLevel = useCallback((level: ProfessionalLevel) => {
+    setState((prev) => ({
+      ...prev,
+      profile: { ...prev.profile, professionalLevel: level },
     }));
   }, []);
 
@@ -284,6 +307,7 @@ export function InternProvider({ children }: { children: ReactNode }) {
     setAccountBasics,
     setTrainingStage,
     setField,
+    setProfessionalLevel,
     completeOnboarding,
     upsertRotation,
     updateRotation,

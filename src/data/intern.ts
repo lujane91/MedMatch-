@@ -15,6 +15,8 @@ export type TrainingStage =
   | "residency"
   | "fellowship";
 
+export type ProfessionalLevel = "gp" | "specialist" | "consultant";
+
 export type ApplicationStatus =
   | "Draft"
   | "Requirements Incomplete"
@@ -68,6 +70,7 @@ export type InternProfile = {
   mobile: string;
   trainingStage: TrainingStage | null;
   field: HealthcareField | null;
+  professionalLevel: ProfessionalLevel | null;
   university: string;
   graduationYear: string;
   currentCity: string;

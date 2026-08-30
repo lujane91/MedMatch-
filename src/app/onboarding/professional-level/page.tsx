@@ -1,77 +1,65 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Activity,
-  HeartPulse,
-  Pill,
-  Smile,
-  Stethoscope,
-} from "lucide-react";
+import { Award, Briefcase, UserRound } from "lucide-react";
 import { InternOnboardingShell } from "@/components/intern/InternOnboardingShell";
-import type { HealthcareField } from "@/data/intern";
+import type { ProfessionalLevel } from "@/data/intern";
 import { cn } from "@/lib/cn";
 import { useInternStore } from "@/lib/intern-store";
 
-const fields: {
-  id: HealthcareField;
+const levels: {
+  id: ProfessionalLevel;
   title: string;
-  icon: typeof Stethoscope;
+  icon: typeof UserRound;
 }[] = [
   {
-    id: "medicine",
-    title: "Medicine",
-    icon: Stethoscope,
+    id: "gp",
+    title: "GP",
+    icon: UserRound,
   },
   {
-    id: "dentistry",
-    title: "Dentistry",
-    icon: Smile,
+    id: "specialist",
+    title: "Specialist",
+    icon: Award,
   },
   {
-    id: "pharmacy",
-    title: "Pharmacy",
-    icon: Pill,
-  },
-  {
-    id: "nursing",
-    title: "Nursing",
-    icon: HeartPulse,
-  },
-  {
-    id: "allied",
-    title: "Allied Health",
-    icon: Activity,
+    id: "consultant",
+    title: "Consultant",
+    icon: Briefcase,
   },
 ];
 
-export default function ProfessionPage() {
+export default function ProfessionalLevelPage() {
   const router = useRouter();
-  const { profile, setField } = useInternStore();
+  const { hydrated, profile, setProfessionalLevel } = useInternStore();
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (
+      profile.trainingStage !== "medical-practice" ||
+      profile.field !== "medicine"
+    ) {
+      router.replace("/onboarding/profession");
+    }
+  }, [hydrated, profile.field, profile.trainingStage, router]);
 
   return (
     <InternOnboardingShell
-      stepId="field"
-      title="What is your healthcare field?"
-      subtitle="Select the field that matches your background."
-      backHref="/onboarding/applying-for"
+      stepId="level"
+      title="What is your current professional level?"
+      subtitle="Select the level that matches your current role."
+      backHref="/onboarding/profession"
     >
       <div className="grid gap-3">
-        {fields.map((field) => {
-          const Icon = field.icon;
+        {levels.map((level) => {
+          const Icon = level.icon;
           return (
             <button
-              key={field.id}
+              key={level.id}
               type="button"
               onClick={() => {
-                setField(field.id);
-                if (
-                  profile.trainingStage === "medical-practice" &&
-                  field.id === "medicine"
-                ) {
-                  router.push("/onboarding/professional-level");
-                  return;
-                }
+                setProfessionalLevel(level.id);
                 router.push("/onboarding/review");
               }}
               className={cn(
@@ -83,7 +71,7 @@ export default function ProfessionPage() {
                   <Icon size={22} strokeWidth={1.75} />
                 </span>
                 <p className="text-[1.0625rem] font-semibold text-mm-navy">
-                  {field.title}
+                  {level.title}
                 </p>
               </div>
             </button>
