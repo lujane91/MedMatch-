@@ -27,7 +27,32 @@ export function ConferencesSummary({ items }: { items: SectionCounts[] }) {
   );
 }
 
-export function CareerSummary({ items }: { items: SectionCounts[] }) {
+export function CareerSummary({
+  items,
+  locked = false,
+}: {
+  items: SectionCounts[];
+  locked?: boolean;
+}) {
+  if (locked) {
+    return (
+      <DashboardSection id="career" title="Career Opportunities">
+        <div className="rounded-[var(--mm-radius-lg)] border border-dashed border-mm-border bg-mm-gray-50 px-4 py-5 text-center">
+          <p className="text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-mm-text-muted">
+            Locked
+          </p>
+          <p className="mt-2 text-[0.9375rem] font-medium text-mm-navy">
+            Available later in your journey
+          </p>
+          <p className="mt-2 text-[0.8125rem] leading-relaxed text-mm-text-muted">
+            Career Opportunities stay part of MedJourney and open as you
+            progress.
+          </p>
+        </div>
+      </DashboardSection>
+    );
+  }
+
   return (
     <DashboardSection id="career" title="Career Opportunities">
       <StatGrid items={items} />

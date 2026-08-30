@@ -6,8 +6,12 @@ import { AppShell } from "@/components/AppShell";
 import { DashboardIdentity } from "@/components/dashboard/DashboardIdentity";
 import { MyJourneyCard } from "@/components/dashboard/MyJourneyCard";
 import { NeedsAttention } from "@/components/dashboard/NeedsAttention";
-import { CareerSummary, ConferencesSummary, ResearchSummary } from "@/components/dashboard/SectionSummaries";
-import { TrainingSummary } from "@/components/dashboard/TrainingSummary";
+import {
+  CareerSummary,
+  ConferencesSummary,
+  ResearchSummary,
+} from "@/components/dashboard/SectionSummaries";
+import { TrainingWorkspace } from "@/components/dashboard/TrainingWorkspace";
 import { DemoPersonaSwitcher } from "@/components/dashboard/DemoPersonaSwitcher";
 import { formatPlanPrice } from "@/data/platform-subscription-plan";
 import {
@@ -102,25 +106,27 @@ export function JourneyDashboard({
               latestStamp={config.latestStamp}
             />
             {config.showTraining && config.trainingTitle ? (
-              <TrainingSummary
+              <TrainingWorkspace
+                profile={profile}
                 title={config.trainingTitle}
-                stats={config.trainingStats}
-                highlights={config.trainingHighlights}
+                compact
               />
             ) : null}
             <ResearchSummary items={config.research} />
             <ConferencesSummary items={config.conferences} />
-            <CareerSummary items={config.career} />
+            <CareerSummary
+              items={config.career}
+              locked={config.careerLocked}
+            />
             <DemoPersonaSwitcher />
           </>
         ) : null}
 
         {focus === "training" ? (
           config.showTraining && config.trainingTitle ? (
-            <TrainingSummary
+            <TrainingWorkspace
+              profile={profile}
               title={config.trainingTitle}
-              stats={config.trainingStats}
-              highlights={config.trainingHighlights}
             />
           ) : (
             <div className="rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-surface p-6 text-center">
@@ -144,7 +150,10 @@ export function JourneyDashboard({
           <ConferencesSummary items={config.conferences} />
         ) : null}
         {focus === "career" ? (
-          <CareerSummary items={config.career} />
+          <CareerSummary
+            items={config.career}
+            locked={config.careerLocked}
+          />
         ) : null}
       </div>
     </AppShell>

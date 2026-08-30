@@ -15,6 +15,7 @@ import { PlatformDirectoryProvider } from "@/lib/platform-directory-store";
 import { PlatformSubscriptionPlanProvider } from "@/lib/platform-subscription-plan-store";
 import { RoleProvider } from "@/lib/role-store";
 import { SubscriptionProvider } from "@/lib/subscription-store";
+import { TrainingApplicationProvider } from "@/lib/training-application-store";
 import "./globals.css";
 import "@/components/demo/demo.css";
 
@@ -82,23 +83,25 @@ export default function RootLayout({
         <DemoModeProvider>
           <RoleProvider>
             <InternProvider>
-              <PlatformSubscriptionPlanProvider>
-                <PlatformDirectoryProvider>
-                  <SubscriptionProvider>
-                    <HospitalProvider>
-                      <HospitalSettingsProvider>
-                        <EvaluationProvider>
-                          <HospitalMonthProvider>
-                            <DashboardFilterProvider>
-                              {children}
-                            </DashboardFilterProvider>
-                          </HospitalMonthProvider>
-                        </EvaluationProvider>
-                      </HospitalSettingsProvider>
-                    </HospitalProvider>
-                  </SubscriptionProvider>
-                </PlatformDirectoryProvider>
-              </PlatformSubscriptionPlanProvider>
+              <TrainingApplicationProvider>
+                <PlatformSubscriptionPlanProvider>
+                  <PlatformDirectoryProvider>
+                    <SubscriptionProvider>
+                      <HospitalProvider>
+                        <HospitalSettingsProvider>
+                          <EvaluationProvider>
+                            <HospitalMonthProvider>
+                              <DashboardFilterProvider>
+                                {children}
+                              </DashboardFilterProvider>
+                            </HospitalMonthProvider>
+                          </EvaluationProvider>
+                        </HospitalSettingsProvider>
+                      </HospitalProvider>
+                    </SubscriptionProvider>
+                  </PlatformDirectoryProvider>
+                </PlatformSubscriptionPlanProvider>
+              </TrainingApplicationProvider>
             </InternProvider>
           </RoleProvider>
         </DemoModeProvider>

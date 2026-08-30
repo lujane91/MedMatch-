@@ -65,6 +65,7 @@ export type StageDashboardConfig = {
   stage: TrainingStage;
   showTraining: boolean;
   trainingTitle: string | null;
+  careerLocked: boolean;
   trainingStats: TrainingStat[];
   trainingHighlights: TrainingHighlight[];
   attention: AttentionItem[];
@@ -134,8 +135,9 @@ export function getMyJourneyFacts(profile: InternProfile): JourneyFact[] {
   const level = professionalLevelLabel(profile.professionalLevel);
 
   if (stage === "medical-student") {
-    if (institution) facts.push({ label: "University", value: institution });
     if (profile.field) facts.push({ label: "Healthcare Field", value: field });
+    if (institution)
+      facts.push({ label: "Current University", value: institution });
     if (year) facts.push({ label: "Current Academic Year", value: year });
     return facts;
   }
@@ -231,6 +233,7 @@ export function buildStageDashboard(
       stage,
       showTraining: true,
       trainingTitle: "Summer Electives",
+      careerLocked: true,
       trainingStats: [
         { label: "Available Electives", value: "12" },
         { label: "My Applications", value: "3" },
@@ -288,6 +291,7 @@ export function buildStageDashboard(
       stage,
       showTraining: true,
       trainingTitle: "Internship Year",
+      careerLocked: false,
       trainingStats: [
         { label: "Applications", value: "4" },
         { label: "Accepted Rotations", value: "3" },
@@ -348,6 +352,7 @@ export function buildStageDashboard(
       stage,
       showTraining: true,
       trainingTitle: "Advanced Training",
+      careerLocked: false,
       trainingStats: [
         { label: "Applications", value: "2" },
         { label: "Completed Training", value: "1" },
@@ -399,6 +404,7 @@ export function buildStageDashboard(
       stage,
       showTraining: true,
       trainingTitle: "External Rotations",
+      careerLocked: false,
       trainingStats: [
         { label: "Required External Rotations", value: "3" },
         { label: "Available External Rotations", value: "8" },
@@ -457,6 +463,7 @@ export function buildStageDashboard(
       stage,
       showTraining: true,
       trainingTitle: "External Rotations",
+      careerLocked: false,
       trainingStats: [
         { label: "Required External Rotations", value: "2" },
         { label: "Available External Rotations", value: "5" },
@@ -513,6 +520,7 @@ export function buildStageDashboard(
     stage: "medical-practice",
     showTraining: false,
     trainingTitle: null,
+    careerLocked: false,
     trainingStats: [],
     trainingHighlights: [],
     attention: [
