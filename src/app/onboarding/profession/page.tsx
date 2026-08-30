@@ -11,6 +11,7 @@ import {
 import { InternOnboardingShell } from "@/components/intern/InternOnboardingShell";
 import {
   isAdvancedTrainingField,
+  needsProfessionalLevel,
   type HealthcareField,
 } from "@/data/intern";
 import { cn } from "@/lib/cn";
@@ -75,10 +76,7 @@ export default function ProfessionPage() {
               onClick={() => {
                 if (advancedTrainingLocked) return;
                 setField(field.id);
-                if (
-                  profile.trainingStage === "medical-practice" &&
-                  field.id === "medicine"
-                ) {
+                if (needsProfessionalLevel(profile.trainingStage, field.id)) {
                   router.push("/onboarding/professional-level");
                   return;
                 }

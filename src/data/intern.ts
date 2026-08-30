@@ -376,6 +376,16 @@ export function isAdvancedTrainingField(
   );
 }
 
+export function needsProfessionalLevel(
+  stage: TrainingStage | null | undefined,
+  field: HealthcareField | null | undefined,
+) {
+  return (
+    stage === "medical-practice" &&
+    (field === "medicine" || field === "dentistry")
+  );
+}
+
 export function trainingStageLabel(stage: TrainingStage | null | undefined) {
   switch (stage) {
     case "medical-student":
@@ -397,6 +407,21 @@ export function trainingStageLabel(stage: TrainingStage | null | undefined) {
   }
 }
 
+export function professionalLevelLabel(
+  level: ProfessionalLevel | null | undefined,
+) {
+  switch (level) {
+    case "gp":
+      return "GP";
+    case "specialist":
+      return "Specialist";
+    case "consultant":
+      return "Consultant";
+    default:
+      return "";
+  }
+}
+
 export function formatTrainingYearProgress(
   currentYear: string | null | undefined,
   totalYears: string | null | undefined,
@@ -412,8 +437,13 @@ export function getPassportFacts(profile: InternProfile) {
   if (profile.field) {
     facts.push(fieldLabel(profile.field));
   }
-  const stage = trainingStageLabel(profile.trainingStage);
-  if (stage) facts.push(stage);
+  const level = professionalLevelLabel(profile.professionalLevel);
+  if (level) {
+    facts.push(level);
+  } else {
+    const stage = trainingStageLabel(profile.trainingStage);
+    if (stage) facts.push(stage);
+  }
   const program = profile.specialty?.trim();
   if (program) facts.push(program);
   const subspecialty = profile.subspecialty?.trim();

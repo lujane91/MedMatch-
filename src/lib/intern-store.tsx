@@ -15,6 +15,7 @@ import {
   defaultRequirements,
   deriveStatus,
   isAdvancedTrainingField,
+  needsProfessionalLevel,
   type ApplicationStatus,
   type HealthcareField,
   type InternProfile,
@@ -199,11 +200,12 @@ export function InternProvider({ children }: { children: ReactNode }) {
         profile: {
           ...prev.profile,
           field,
-          professionalLevel:
-            prev.profile.trainingStage === "medical-practice" &&
-            field === "medicine"
-              ? prev.profile.professionalLevel
-              : null,
+          professionalLevel: needsProfessionalLevel(
+            prev.profile.trainingStage,
+            field,
+          )
+            ? prev.profile.professionalLevel
+            : null,
         },
       };
     });

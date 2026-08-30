@@ -4,7 +4,10 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Award, Briefcase, UserRound } from "lucide-react";
 import { InternOnboardingShell } from "@/components/intern/InternOnboardingShell";
-import type { ProfessionalLevel } from "@/data/intern";
+import {
+  needsProfessionalLevel,
+  type ProfessionalLevel,
+} from "@/data/intern";
 import { cn } from "@/lib/cn";
 import { useInternStore } from "@/lib/intern-store";
 
@@ -36,10 +39,7 @@ export default function ProfessionalLevelPage() {
 
   useEffect(() => {
     if (!hydrated) return;
-    if (
-      profile.trainingStage !== "medical-practice" ||
-      profile.field !== "medicine"
-    ) {
+    if (!needsProfessionalLevel(profile.trainingStage, profile.field)) {
       router.replace("/onboarding/profession");
     }
   }, [hydrated, profile.field, profile.trainingStage, router]);

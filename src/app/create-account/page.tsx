@@ -8,6 +8,7 @@ import { Input, SearchableSelect } from "@/components/ui";
 import { getAdvancedTrainingProgramsForField } from "@/data/advanced-training-programs";
 import {
   isAdvancedTrainingField,
+  needsProfessionalLevel,
   type TrainingStage,
 } from "@/data/intern";
 import { SAUDI_HOSPITAL_NAMES } from "@/data/saudi-hospitals";
@@ -192,8 +193,7 @@ export default function CreateAccountPage() {
     [specialty],
   );
   const showOptionalSubspecialty =
-    stage === "medical-practice" &&
-    profile.field === "medicine" &&
+    needsProfessionalLevel(stage, profile.field) &&
     profile.professionalLevel === "consultant";
 
   useEffect(() => {
@@ -214,8 +214,7 @@ export default function CreateAccountPage() {
       return;
     }
     if (
-      profile.trainingStage === "medical-practice" &&
-      profile.field === "medicine" &&
+      needsProfessionalLevel(profile.trainingStage, profile.field) &&
       !profile.professionalLevel
     ) {
       router.replace("/onboarding/professional-level");
