@@ -35,7 +35,7 @@ export default function SubscriptionSuccessPage() {
   return (
     <SubscriptionShell
       title="Account Created Successfully"
-      subtitle="Your MedJourney monthly subscription is active."
+      subtitle="Your MedJourney profile is ready."
     >
       <div className="rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-surface p-5 shadow-mm-sm sm:p-6">
         <dl className="space-y-4">
@@ -63,8 +63,8 @@ export default function SubscriptionSuccessPage() {
       </div>
 
       <div className="mt-8 space-y-4">
-        <Link href="/passport?welcome=1" className={subscriptionPrimaryButtonClass}>
-          Open MedJourney Passport
+        <Link href="/dashboard" className={subscriptionPrimaryButtonClass}>
+          Open My Dashboard
         </Link>
         <Link
           href="/subscription/invoice"
