@@ -10,8 +10,10 @@ import {
   type ReactNode,
 } from "react";
 import {
+  buildDirectTrainingApplication,
   buildSeedApplications,
   buildTrainingApplication,
+  type DirectTrainingApplicationInput,
   type NewTrainingApplicationInput,
   type TrainingApplication,
   type TrainingApplicationStatus,
@@ -34,6 +36,9 @@ type TrainingStore = {
   documents: UserDocument[];
   submitApplication: (
     input: NewTrainingApplicationInput,
+  ) => TrainingApplication;
+  submitDirectApplication: (
+    input: DirectTrainingApplicationInput,
   ) => TrainingApplication;
   updateApplicationStatus: (
     id: string,
@@ -123,6 +128,15 @@ export function TrainingApplicationProvider({
   const submitApplication = useCallback(
     (input: NewTrainingApplicationInput) => {
       const next = buildTrainingApplication(input);
+      setApplications((prev) => [next, ...prev]);
+      return next;
+    },
+    [],
+  );
+
+  const submitDirectApplication = useCallback(
+    (input: DirectTrainingApplicationInput) => {
+      const next = buildDirectTrainingApplication(input);
       setApplications((prev) => [next, ...prev]);
       return next;
     },
@@ -254,6 +268,7 @@ export function TrainingApplicationProvider({
       applications,
       documents,
       submitApplication,
+      submitDirectApplication,
       updateApplicationStatus,
       markApplicationCompleted,
       applicationsFor,
@@ -270,6 +285,7 @@ export function TrainingApplicationProvider({
       latestDocumentOfType,
       markApplicationCompleted,
       submitApplication,
+      submitDirectApplication,
       updateApplicationStatus,
       uploadDocument,
     ],

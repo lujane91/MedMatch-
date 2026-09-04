@@ -140,6 +140,35 @@ export type NewTrainingApplicationInput = {
   documents: ApplicationDocumentLink[];
 };
 
+export type DirectTrainingApplicationInput = {
+  applicantKey: string;
+  journeyStage: TrainingStage;
+  healthcareField: HealthcareField | null;
+  trainingType: TrainingApplicationType;
+  hospital: string;
+  city: string;
+  specialty: string;
+  month: string;
+  startDate: string;
+  endDate: string;
+  documents: ApplicationDocumentLink[];
+};
+
+function documentTotals(documents: ApplicationDocumentLink[]) {
+  const required = documents.filter((d) => d.required);
+  const requiredComplete = required.filter((d) => d.status === "Uploaded")
+    .length;
+  const missingRequired = required
+    .filter((d) => d.status !== "Uploaded")
+    .map((d) => d.label);
+  return {
+    requiredComplete,
+    requiredTotal: required.length,
+    missingRequired,
+    requirementsReady: missingRequired.length === 0,
+  };
+}
+
 export function buildTrainingApplication(
   input: NewTrainingApplicationInput,
 ): TrainingApplication {
@@ -148,14 +177,7 @@ export function buildTrainingApplication(
     throw new Error("Training opportunity not found");
   }
 
-  const required = input.documents.filter((d) => d.required);
-  const requiredComplete = required.filter((d) => d.status === "Uploaded")
-    .length;
-  const missingRequired = required
-    .filter((d) => d.status !== "Uploaded")
-    .map((d) => d.label);
-  const requirementsReady = missingRequired.length === 0;
-
+  const totals = documentTotals(input.documents);
   const now = new Date().toISOString();
   return {
     id: createTrainingApplicationId(),
@@ -173,14 +195,52 @@ export function buildTrainingApplication(
     endDate: input.endDate || opportunity.endDate,
     datesWereFlexible: !opportunity.datesFixed,
     documents: input.documents,
-    requirementsReady,
-    requiredComplete,
-    requiredTotal: required.length,
-    missingRequired,
+    ...totals,
     applicationStatus: "Submitted",
     medjourneyApplicationFeeSar:
       opportunity.medjourneyApplicationFeeSar || MEDJOURNEY_APPLICATION_FEE_SAR,
-    hospitalFee: opportunity.hospitalFee,
+    hospitalFee:
+      opportunity.trainingType === "summer-elective"
+        ? { kind: "none" }
+        : opportunity.hospitalFee,
+    feeStatus: "Paid (Demo)",
+    remainingActions: [],
+    evaluationReceived: false,
+    certificateAvailable: false,
+    stampEarned: false,
+    hospitalReviewNote: "",
+    submittedAt: now,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/** Direct hospital request without a published opportunity listing. */
+export function buildDirectTrainingApplication(
+  input: DirectTrainingApplicationInput,
+): TrainingApplication {
+  const totals = documentTotals(input.documents);
+  const now = new Date().toISOString();
+  return {
+    id: createTrainingApplicationId(),
+    applicantKey: input.applicantKey,
+    opportunityId: `direct_${Date.now()}`,
+    trainingType: input.trainingType,
+    journeyStage: input.journeyStage,
+    healthcareField: input.healthcareField,
+    hospital: input.hospital.trim(),
+    city: input.city.trim(),
+    specialty: input.specialty.trim(),
+    subspecialty: "",
+    month: input.month.trim(),
+    startDate: input.startDate,
+    endDate: input.endDate,
+    datesWereFlexible: true,
+    documents: input.documents,
+    ...totals,
+    applicationStatus: "Submitted",
+    medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
+    hospitalFee: { kind: "none" },
     feeStatus: "Paid (Demo)",
     remainingActions: [],
     evaluationReceived: false,

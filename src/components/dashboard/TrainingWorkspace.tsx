@@ -9,7 +9,8 @@ import {
 } from "@/components/dashboard/DashboardSection";
 import type { InternProfile } from "@/data/intern";
 import { resolveStage } from "@/data/journey-dashboard";
-import { SAUDI_HOSPITAL_NAMES } from "@/data/saudi-hospitals";
+import { getSpecialtiesForField } from "@/data/saudi-specialties";
+import { SAUDI_CITIES, SAUDI_HOSPITAL_NAMES } from "@/data/saudi-hospitals";
 import {
   findTrainingTitle,
   statusToneClass,
@@ -24,6 +25,8 @@ import {
   type UserDocument,
 } from "@/data/training-documents";
 import {
+  MEDJOURNEY_APPLICATION_FEE_SAR,
+  SUMMER_ELECTIVE_DOCUMENT_REQUIREMENTS,
   TRAINING_MONTHS,
   daysUntil,
   formatDateRange,
@@ -31,6 +34,8 @@ import {
   formatHospitalFee,
   formatMedJourneyFee,
   getOpportunityById,
+  hospitalsForCity,
+  monthNameFromIsoDate,
   opportunitiesForType,
   trainingCities,
   type TrainingOpportunity,
@@ -38,7 +43,7 @@ import {
 import { cn } from "@/lib/cn";
 import { useTrainingApplications } from "@/lib/training-application-store";
 
-type MainArea = "home" | "find" | "detail" | "apply" | "mine";
+type MainArea = "home" | "find" | "direct" | "detail" | "apply" | "mine";
 type MyTab = "applications" | "upcoming" | "completed";
 type ApplyStep = 1 | 2 | 3;
 
@@ -82,9 +87,11 @@ function readinessForOpportunity(
 function OpportunityCard({
   opportunity,
   onOpen,
+  hideHospitalFee = false,
 }: {
   opportunity: TrainingOpportunity;
   onOpen: () => void;
+  hideHospitalFee?: boolean;
 }) {
   return (
     <article className="rounded-[var(--mm-radius-lg)] border border-mm-border px-4 py-3">
@@ -113,12 +120,14 @@ function OpportunityCard({
             {formatMedJourneyFee(opportunity.medjourneyApplicationFeeSar)}
           </span>
         </p>
-        <p>
-          Hospital or Training Fee
-          <span className="mt-0.5 block font-medium text-mm-navy">
-            {formatHospitalFee(opportunity.hospitalFee)}
-          </span>
-        </p>
+        {!hideHospitalFee ? (
+          <p>
+            Hospital or Training Fee
+            <span className="mt-0.5 block font-medium text-mm-navy">
+              {formatHospitalFee(opportunity.hospitalFee)}
+            </span>
+          </p>
+        ) : null}
       </div>
       <button
         type="button"
@@ -185,6 +194,7 @@ export function TrainingWorkspace({
   const {
     hydrated,
     submitApplication,
+    submitDirectApplication,
     applicationsFor,
     documentsFor,
     latestDocumentOfType,
@@ -197,8 +207,12 @@ export function TrainingWorkspace({
   const [area, setArea] = useState<MainArea>("home");
   const [myTab, setMyTab] = useState<MyTab>("applications");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [directDraft, setDirectDraft] = useState<TrainingOpportunity | null>(
+    null,
+  );
   const [applyStep, setApplyStep] = useState<ApplyStep>(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [opportunitySearch, setOpportunitySearch] = useState("");
   const [filterMonth, setFilterMonth] = useState("");
   const [filterCity, setFilterCity] = useState("");
   const [filterHospital, setFilterHospital] = useState("");
@@ -206,6 +220,7 @@ export function TrainingWorkspace({
   const [filterAvailability, setFilterAvailability] = useState("");
   const [filterFee, setFilterFee] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
 
   const [preferredMonth, setPreferredMonth] = useState("");
   const [preferredStart, setPreferredStart] = useState("");
@@ -215,6 +230,15 @@ export function TrainingWorkspace({
   >({});
   const [submitError, setSubmitError] = useState("");
   const [justSubmittedId, setJustSubmittedId] = useState<string | null>(null);
+
+  const [directCity, setDirectCity] = useState("");
+  const [directHospital, setDirectHospital] = useState("");
+  const [directSpecialty, setDirectSpecialty] = useState("");
+  const [directFrom, setDirectFrom] = useState("");
+  const [directTo, setDirectTo] = useState("");
+  const [directFormError, setDirectFormError] = useState("");
+
+  const isSummerElective = trainingType === "summer-elective";
 
   const opportunities = useMemo(() => {
     if (!trainingType) return [];
@@ -231,9 +255,11 @@ export function TrainingWorkspace({
     [applicantKey, documentsFor],
   );
 
-  const selected = selectedId ? getOpportunityById(selectedId) : null;
+  const selected = directDraft || (selectedId ? getOpportunityById(selectedId) : null);
+  const isDirectApply = Boolean(directDraft);
 
   const filtered = useMemo(() => {
+    const q = opportunitySearch.trim().toLowerCase();
     return opportunities.filter((o) => {
       if (filterMonth && o.month !== filterMonth) return false;
       if (filterCity && o.city !== filterCity) return false;
@@ -245,28 +271,49 @@ export function TrainingWorkspace({
       ) {
         return false;
       }
-      if (filterAvailability === "Available" && o.availableSpots <= 0) {
-        return false;
+      if (filterDateFrom && o.endDate < filterDateFrom) return false;
+      if (filterDateTo && o.startDate > filterDateTo) return false;
+      if (!isSummerElective) {
+        if (filterAvailability === "Available" && o.availableSpots <= 0) {
+          return false;
+        }
+        if (filterAvailability === "Limited" && o.availableSpots > 3) {
+          return false;
+        }
+        if (filterFee === "No Hospital Fee" && o.hospitalFee.kind !== "none") {
+          return false;
+        }
+        if (filterFee === "Has Hospital Fee" && o.hospitalFee.kind !== "fee") {
+          return false;
+        }
       }
-      if (filterAvailability === "Limited" && o.availableSpots > 3) return false;
-      if (filterFee === "No Hospital Fee" && o.hospitalFee.kind !== "none") {
-        return false;
+      if (q) {
+        const hay = [
+          o.hospital,
+          o.specialty,
+          o.subspecialty,
+          o.city,
+          o.month,
+          o.description,
+        ]
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
       }
-      if (filterFee === "Has Hospital Fee" && o.hospitalFee.kind !== "fee") {
-        return false;
-      }
-      if (filterDateFrom && o.startDate < filterDateFrom) return false;
       return true;
     });
   }, [
     filterAvailability,
     filterCity,
     filterDateFrom,
+    filterDateTo,
     filterFee,
     filterHospital,
     filterMonth,
     filterSpecialty,
+    isSummerElective,
     opportunities,
+    opportunitySearch,
   ]);
 
   const specialtyOptions = useMemo(
@@ -274,6 +321,16 @@ export function TrainingWorkspace({
       Array.from(new Set(opportunities.map((o) => o.specialty))).sort(),
     [opportunities],
   );
+
+  const directSpecialtyOptions = useMemo(
+    () => [...getSpecialtiesForField(profile.field)],
+    [profile.field],
+  );
+
+  const directHospitalOptions = useMemo(() => {
+    const names = hospitalsForCity(directCity);
+    return names.length ? names : SAUDI_HOSPITAL_NAMES;
+  }, [directCity]);
 
   const stats = useMemo(() => {
     const apps = applications.filter((a) =>
@@ -300,12 +357,14 @@ export function TrainingWorkspace({
   const discoveryTitle = findTrainingTitle(activeType);
 
   function openDetail(id: string) {
+    setDirectDraft(null);
     setSelectedId(id);
     setArea("detail");
     setSubmitError("");
   }
 
   function startApply(opportunity: TrainingOpportunity) {
+    setDirectDraft(null);
     setSelectedId(opportunity.id);
     setPreferredMonth(opportunity.month);
     setPreferredStart(opportunity.startDate);
@@ -344,6 +403,61 @@ export function TrainingWorkspace({
     });
   }
 
+  function beginDirectElectiveApply() {
+    setDirectFormError("");
+    if (
+      !directCity.trim() ||
+      !directHospital.trim() ||
+      !directSpecialty.trim() ||
+      !directFrom ||
+      !directTo
+    ) {
+      setDirectFormError("Please complete City, Hospital, Specialty, From Date, and To Date.");
+      return;
+    }
+    if (directTo < directFrom) {
+      setDirectFormError("To Date cannot be earlier than From Date.");
+      return;
+    }
+    const month = monthNameFromIsoDate(directFrom);
+    const draft: TrainingOpportunity = {
+      id: "direct-draft",
+      trainingType: "summer-elective",
+      hospital: directHospital.trim(),
+      city: directCity.trim(),
+      healthcareField: profile.field || "medicine",
+      specialty: directSpecialty.trim(),
+      subspecialty: "",
+      month,
+      startDate: directFrom,
+      endDate: directTo,
+      datesFixed: true,
+      availableSpots: 0,
+      applicationDeadline: directFrom,
+      medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
+      hospitalFee: { kind: "none" },
+      requirements: SUMMER_ELECTIVE_DOCUMENT_REQUIREMENTS,
+      description:
+        "Direct summer elective request submitted through MedJourney.",
+      status: "Open",
+    };
+    setDirectDraft(draft);
+    setSelectedId(null);
+    setPreferredMonth(month);
+    setPreferredStart(directFrom);
+    setPreferredEnd(directTo);
+    const initial: Record<string, string | null> = {};
+    for (const req of draft.requirements) {
+      const existing = latestDocumentOfType(applicantKey, req.documentType);
+      initial[req.id] =
+        existing && existing.status === "Uploaded" ? existing.id : null;
+    }
+    setDocSelections(initial);
+    setApplyStep(2);
+    setSubmitError("");
+    setArea("apply");
+  }
+
   function handleSubmit() {
     if (!selected) return;
     const links = buildDocumentLinks(selected);
@@ -354,7 +468,7 @@ export function TrainingWorkspace({
       setSubmitError(`Missing: ${missing.join(", ")}`);
       return;
     }
-    if (!selected.datesFixed) {
+    if (!selected.datesFixed && !isDirectApply) {
       if (!preferredMonth || !preferredStart || !preferredEnd) {
         setSubmitError("Please choose preferred month and dates.");
         return;
@@ -364,17 +478,32 @@ export function TrainingWorkspace({
         return;
       }
     }
-    const app = submitApplication({
-      applicantKey,
-      opportunityId: selected.id,
-      journeyStage: stage,
-      healthcareField: profile.field,
-      month: preferredMonth,
-      startDate: preferredStart,
-      endDate: preferredEnd,
-      documents: links,
-    });
+    const app = isDirectApply
+      ? submitDirectApplication({
+          applicantKey,
+          journeyStage: stage,
+          healthcareField: profile.field,
+          trainingType: "summer-elective",
+          hospital: selected.hospital,
+          city: selected.city,
+          specialty: selected.specialty,
+          month: preferredMonth || selected.month,
+          startDate: preferredStart || selected.startDate,
+          endDate: preferredEnd || selected.endDate,
+          documents: links,
+        })
+      : submitApplication({
+          applicantKey,
+          opportunityId: selected.id,
+          journeyStage: stage,
+          healthcareField: profile.field,
+          month: preferredMonth,
+          startDate: preferredStart,
+          endDate: preferredEnd,
+          documents: links,
+        });
     setJustSubmittedId(app.id);
+    setDirectDraft(null);
     setArea("mine");
     setMyTab("applications");
   }
@@ -429,7 +558,9 @@ export function TrainingWorkspace({
                 {discoveryTitle}
               </p>
               <p className="mt-2 text-[0.8125rem] text-mm-text-secondary">
-                Search hospitals, specialties, months, and availability.
+                {isSummerElective
+                  ? "Request an elective or browse available opportunities."
+                  : "Search hospitals, specialties, months, and availability."}
               </p>
             </button>
             <button
@@ -452,12 +583,19 @@ export function TrainingWorkspace({
         <button
           type="button"
           onClick={() => {
-            if (area === "apply" || area === "detail") setArea("find");
-            else setArea("home");
+            if (area === "apply") {
+              setArea(isDirectApply ? "direct" : "find");
+              return;
+            }
+            if (area === "detail" || area === "direct") {
+              setArea("find");
+              return;
+            }
+            setArea("home");
           }}
           className="text-[0.875rem] font-semibold text-mm-teal"
         >
-          {area === "apply" || area === "detail"
+          {area === "apply" || area === "detail" || area === "direct"
             ? `Back to ${discoveryTitle}`
             : "Back to Training"}
         </button>
@@ -465,6 +603,47 @@ export function TrainingWorkspace({
 
       {area === "find" ? (
         <DashboardSection title={discoveryTitle}>
+          {isSummerElective ? (
+            <button
+              type="button"
+              onClick={() => {
+                setDirectFormError("");
+                setArea("direct");
+              }}
+              className="mb-6 w-full rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-surface p-5 text-left shadow-mm-sm transition-colors hover:border-mm-teal"
+            >
+              <p className="text-[1.0625rem] font-semibold text-mm-navy">
+                Apply for a Summer Elective
+              </p>
+              <p className="mt-2 text-[0.8125rem] text-mm-text-secondary">
+                Choose your preferred hospital, specialty and dates and submit
+                your elective request.
+              </p>
+            </button>
+          ) : null}
+
+          <div className="mb-3">
+            <h3 className="text-[1rem] font-semibold text-mm-navy">
+              {isSummerElective ? "Available Opportunities" : "Opportunities"}
+            </h3>
+            {isSummerElective ? (
+              <p className="mt-1 text-[0.8125rem] text-mm-text-muted">
+                Browse published elective opportunities.
+              </p>
+            ) : null}
+          </div>
+
+          {isSummerElective ? (
+            <div className="mb-4">
+              <Input
+                label="Search"
+                value={opportunitySearch}
+                onChange={(e) => setOpportunitySearch(e.target.value)}
+                placeholder="Search opportunities"
+              />
+            </div>
+          ) : null}
+
           <div className="mb-4 flex items-center justify-between gap-3">
             <p className="text-[0.875rem] text-mm-text-secondary">
               {filtered.length} opportunities
@@ -486,22 +665,31 @@ export function TrainingWorkspace({
                 onChange={setFilterMonth}
                 options={[...TRAINING_MONTHS]}
                 allowOther={false}
+                searchable={false}
               />
-              <Input
-                label="Dates from"
-                type="date"
-                value={filterDateFrom}
-                onChange={(e) => setFilterDateFrom(e.target.value)}
-              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  label="From Date"
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                />
+                <Input
+                  label="To Date"
+                  type="date"
+                  value={filterDateTo}
+                  onChange={(e) => setFilterDateTo(e.target.value)}
+                />
+              </div>
               <SearchableSelect
                 label="City"
                 value={filterCity}
                 onChange={setFilterCity}
-                options={trainingCities()}
+                options={isSummerElective ? [...SAUDI_CITIES] : trainingCities()}
                 allowOther={false}
               />
               <SearchableSelect
-                label="Hospital or Training Institution"
+                label="Hospital"
                 value={filterHospital}
                 onChange={setFilterHospital}
                 options={SAUDI_HOSPITAL_NAMES}
@@ -510,22 +698,28 @@ export function TrainingWorkspace({
                 label="Specialty"
                 value={filterSpecialty}
                 onChange={setFilterSpecialty}
-                options={specialtyOptions}
+                options={
+                  isSummerElective ? directSpecialtyOptions : specialtyOptions
+                }
               />
-              <SearchableSelect
-                label="Availability"
-                value={filterAvailability}
-                onChange={setFilterAvailability}
-                options={["Available", "Limited"]}
-                allowOther={false}
-              />
-              <SearchableSelect
-                label="Fee"
-                value={filterFee}
-                onChange={setFilterFee}
-                options={["No Hospital Fee", "Has Hospital Fee"]}
-                allowOther={false}
-              />
+              {!isSummerElective ? (
+                <>
+                  <SearchableSelect
+                    label="Availability"
+                    value={filterAvailability}
+                    onChange={setFilterAvailability}
+                    options={["Available", "Limited"]}
+                    allowOther={false}
+                  />
+                  <SearchableSelect
+                    label="Fee"
+                    value={filterFee}
+                    onChange={setFilterFee}
+                    options={["No Hospital Fee", "Has Hospital Fee"]}
+                    allowOther={false}
+                  />
+                </>
+              ) : null}
               <button
                 type="button"
                 onClick={() => {
@@ -536,6 +730,8 @@ export function TrainingWorkspace({
                   setFilterAvailability("");
                   setFilterFee("");
                   setFilterDateFrom("");
+                  setFilterDateTo("");
+                  setOpportunitySearch("");
                 }}
                 className="text-[0.8125rem] font-semibold text-mm-teal"
               >
@@ -549,6 +745,7 @@ export function TrainingWorkspace({
               <li key={opportunity.id}>
                 <OpportunityCard
                   opportunity={opportunity}
+                  hideHospitalFee={isSummerElective}
                   onOpen={() => openDetail(opportunity.id)}
                 />
               </li>
@@ -559,6 +756,81 @@ export function TrainingWorkspace({
               No opportunities match these filters.
             </p>
           ) : null}
+        </DashboardSection>
+      ) : null}
+
+      {area === "direct" && isSummerElective ? (
+        <DashboardSection title="Apply for a Summer Elective">
+          <p className="mb-4 text-[0.875rem] text-mm-text-secondary">
+            Choose your preferred hospital, specialty and dates and submit your
+            elective request.
+          </p>
+          <div className="space-y-4">
+            <SearchableSelect
+              label="City"
+              value={directCity}
+              onChange={(next) => {
+                setDirectCity(next);
+                setDirectHospital("");
+              }}
+              options={[...SAUDI_CITIES]}
+              allowOther={false}
+              searchable={false}
+              required
+            />
+            <SearchableSelect
+              label="Hospital"
+              value={directHospital}
+              onChange={setDirectHospital}
+              options={directHospitalOptions}
+              placeholder="Search or select hospital"
+              required
+            />
+            <SearchableSelect
+              label="Specialty"
+              value={directSpecialty}
+              onChange={setDirectSpecialty}
+              options={directSpecialtyOptions}
+              placeholder="Search or select specialty"
+              required
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="From Date"
+                type="date"
+                value={directFrom}
+                onChange={(e) => setDirectFrom(e.target.value)}
+                required
+              />
+              <Input
+                label="To Date"
+                type="date"
+                value={directTo}
+                onChange={(e) => setDirectTo(e.target.value)}
+                required
+              />
+            </div>
+            <div className="rounded-[var(--mm-radius-lg)] border border-mm-border px-4 py-3 text-[0.8125rem]">
+              <p>
+                MedJourney Application Fee
+                <span className="mt-0.5 block font-semibold text-mm-navy">
+                  {formatMedJourneyFee(MEDJOURNEY_APPLICATION_FEE_SAR)}
+                </span>
+              </p>
+            </div>
+            {directFormError ? (
+              <p className="text-[0.8125rem] font-medium text-mm-error-700">
+                {directFormError}
+              </p>
+            ) : null}
+            <button
+              type="button"
+              onClick={beginDirectElectiveApply}
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-[var(--mm-radius-lg)] bg-mm-teal px-5 text-[0.875rem] font-semibold text-white"
+            >
+              Apply for This Hospital
+            </button>
+          </div>
         </DashboardSection>
       ) : null}
 
@@ -623,14 +895,16 @@ export function TrainingWorkspace({
                 {formatMedJourneyFee(selected.medjourneyApplicationFeeSar)}
               </dd>
             </div>
-            <div>
-              <dt className="font-semibold uppercase tracking-[0.08em] text-mm-text-muted">
-                Hospital or Training Fee
-              </dt>
-              <dd className="mt-1 text-mm-navy">
-                {formatHospitalFee(selected.hospitalFee)}
-              </dd>
-            </div>
+            {!isSummerElective ? (
+              <div>
+                <dt className="font-semibold uppercase tracking-[0.08em] text-mm-text-muted">
+                  Hospital or Training Fee
+                </dt>
+                <dd className="mt-1 text-mm-navy">
+                  {formatHospitalFee(selected.hospitalFee)}
+                </dd>
+              </div>
+            ) : null}
           </dl>
 
           <p className="mt-4 text-[0.875rem] leading-relaxed text-mm-text-secondary">
@@ -924,12 +1198,14 @@ export function TrainingWorkspace({
                     {formatMedJourneyFee(selected.medjourneyApplicationFeeSar)}
                   </span>
                 </p>
-                <p className="mt-3">
-                  Hospital or Training Fee
-                  <span className="mt-0.5 block font-semibold text-mm-navy">
-                    {formatHospitalFee(selected.hospitalFee)}
-                  </span>
-                </p>
+                {!isSummerElective ? (
+                  <p className="mt-3">
+                    Hospital or Training Fee
+                    <span className="mt-0.5 block font-semibold text-mm-navy">
+                      {formatHospitalFee(selected.hospitalFee)}
+                    </span>
+                  </p>
+                ) : null}
                 <p className="mt-2 text-mm-text-muted">
                   Prototype only. Real payment is not processed yet.
                 </p>
@@ -966,7 +1242,7 @@ export function TrainingWorkspace({
         <DashboardSection title="My Training">
           {justSubmittedId ? (
             <p className="mb-4 text-[0.8125rem] font-medium text-mm-teal-700">
-              Application submitted. Status is Submitted.
+              Application submitted. Waiting for hospital decision.
             </p>
           ) : null}
 

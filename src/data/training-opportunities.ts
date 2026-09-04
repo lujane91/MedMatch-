@@ -80,6 +80,31 @@ function hospitalCity(name: string) {
   return SAUDI_HOSPITALS.find((h) => h.name === name)?.city || "Riyadh";
 }
 
+/** Default document requirements for Medical Student summer elective applications. */
+export const SUMMER_ELECTIVE_DOCUMENT_REQUIREMENTS: TrainingRequirement[] = [
+  req("r1", "cv", true, "CV"),
+  req("r2", "university-letter", true, "University Letter"),
+  req("r3", "academic-transcript", true, "Academic Transcript"),
+  req("r4", "vaccination-record", true, "Vaccination Record"),
+  req("r5", "national-id", true, "National ID or Iqama"),
+  req("r6", "recommendation-letter", false, "Recommendation Letter"),
+];
+
+export function monthNameFromIsoDate(iso: string) {
+  const monthIndex = Number(iso.slice(5, 7)) - 1;
+  if (monthIndex < 0 || monthIndex > 11) return "";
+  return TRAINING_MONTHS[monthIndex];
+}
+
+export function hospitalsForCity(city: string) {
+  if (!city.trim()) {
+    return SAUDI_HOSPITALS.map((item) => item.name);
+  }
+  return SAUDI_HOSPITALS.filter((item) => item.city === city).map(
+    (item) => item.name,
+  );
+}
+
 const KFSHRC =
   "King Faisal Specialist Hospital and Research Centre Riyadh";
 const KSUMC = "King Saud University Medical City";
@@ -107,14 +132,7 @@ export const SEED_TRAINING_OPPORTUNITIES: TrainingOpportunity[] = [
     applicationDeadline: "2027-05-15",
     medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
     hospitalFee: { kind: "fee", amountSar: 100 },
-    requirements: [
-      req("r1", "cv", true, "CV"),
-      req("r2", "university-letter", true, "University Letter"),
-      req("r3", "academic-transcript", true, "Academic Transcript"),
-      req("r4", "vaccination-record", true, "Vaccination Record"),
-      req("r5", "national-id", true, "National ID or Iqama"),
-      req("r6", "recommendation-letter", false, "Recommendation Letter"),
-    ],
+    requirements: SUMMER_ELECTIVE_DOCUMENT_REQUIREMENTS,
     description:
       "Supervised cardiology summer elective with ward rounds, clinics, and teaching sessions.",
     status: "Open",
