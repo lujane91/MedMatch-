@@ -298,7 +298,7 @@ export function buildStageDashboard(
         { label: "Applications", value: "4" },
         { label: "Accepted Rotations", value: "3" },
         { label: "Completed Rotations", value: "5" },
-        { label: "Evaluations", value: "2" },
+        { label: "Open Opportunities", value: "60+" },
       ],
       trainingHighlights: [
         {

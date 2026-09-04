@@ -22,8 +22,8 @@ export type { TrainingApplicationType, TrainingFee };
 /**
  * Application progression for hospital-compatible workflow:
  * Draft → Submitted → Under Review → Accepted | Waitlisted | Declined
- * Waitlisted may later become Accepted or Declined.
- * Accepted training later becomes Completed.
+ * Internship Year adds student confirmation and alternative-month flows.
+ * Accepted training later becomes Completed (or Student Confirmed → Completed).
  */
 export type TrainingApplicationStatus =
   | "Draft"
@@ -32,6 +32,9 @@ export type TrainingApplicationStatus =
   | "Waitlisted"
   | "Accepted"
   | "Declined"
+  | "Alternative Month Proposed"
+  | "Student Confirmed"
+  | "Student Declined"
   | "Completed";
 
 export type TrainingFeeStatus = "Not Required" | "Pending" | "Paid (Demo)";
@@ -89,6 +92,12 @@ export type TrainingApplication = {
   stampEarned: boolean;
   /** Reserved for future hospital review side. */
   hospitalReviewNote: string;
+  /** Internship Year: hospital-proposed alternative month (YYYY-MM). */
+  proposedMonthKey?: string;
+  proposedStartDate?: string;
+  proposedEndDate?: string;
+  /** Internship Year: student priority among applications (1 = highest). */
+  priority?: number;
   submittedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -115,11 +124,17 @@ export function nextPaymentStatusAfterDecision(
   if (applicationStatus === "Declined" && current === "paid") {
     return "refundPending";
   }
+  if (applicationStatus === "Student Declined" && current === "paid") {
+    // Student decline after hospital accept — treat as voluntary withdrawal (nonrefundable by default).
+    return current;
+  }
   if (
     applicationStatus === "Waitlisted" ||
     applicationStatus === "Accepted" ||
     applicationStatus === "Under Review" ||
-    applicationStatus === "Submitted"
+    applicationStatus === "Submitted" ||
+    applicationStatus === "Alternative Month Proposed" ||
+    applicationStatus === "Student Confirmed"
   ) {
     return current;
   }
@@ -304,16 +319,62 @@ export function buildDirectTrainingApplication(
 export function statusToneClass(status: TrainingApplicationStatus) {
   switch (status) {
     case "Accepted":
+    case "Student Confirmed":
     case "Completed":
       return "bg-mm-teal-50 text-mm-teal-700";
     case "Draft":
     case "Submitted":
     case "Under Review":
     case "Waitlisted":
+    case "Alternative Month Proposed":
       return "bg-amber-50 text-amber-800";
     case "Declined":
+    case "Student Declined":
       return "bg-mm-error-50 text-mm-error-700";
   }
+}
+
+/** Display label — internship uses clearer hospital-acceptance wording. */
+export function applicationStatusLabel(
+  status: TrainingApplicationStatus,
+  trainingType?: TrainingApplicationType | null,
+) {
+  if (trainingType === "internship-rotation" && status === "Accepted") {
+    return "Accepted by Hospital";
+  }
+  if (status === "Student Confirmed") return "Confirmed";
+  return status;
+}
+
+export function applicationMonthKey(app: Pick<TrainingApplication, "startDate" | "proposedMonthKey" | "applicationStatus">) {
+  if (
+    app.applicationStatus === "Alternative Month Proposed" &&
+    app.proposedMonthKey
+  ) {
+    return app.proposedMonthKey;
+  }
+  return app.startDate.slice(0, 7);
+}
+
+export function confirmedInternshipApps(apps: TrainingApplication[]) {
+  return apps.filter(
+    (a) =>
+      a.trainingType === "internship-rotation" &&
+      (a.applicationStatus === "Student Confirmed" ||
+        a.applicationStatus === "Completed"),
+  );
+}
+
+export function findMonthConflict(
+  apps: TrainingApplication[],
+  monthKey: string,
+  excludeId?: string,
+) {
+  return confirmedInternshipApps(apps).find(
+    (a) =>
+      a.id !== excludeId &&
+      applicationMonthKey(a) === monthKey,
+  );
 }
 
 /** Demo applications so Upcoming / Completed tabs are testable. */

@@ -46,6 +46,10 @@ type TrainingStore = {
     status: TrainingApplicationStatus,
     hospitalReviewNote?: string,
   ) => void;
+  patchApplication: (
+    id: string,
+    patch: Partial<TrainingApplication>,
+  ) => void;
   markApplicationCompleted: (id: string) => void;
   applicationsFor: (
     applicantKey: string,
@@ -182,6 +186,36 @@ export function TrainingApplicationProvider({
     [],
   );
 
+  const patchApplication = useCallback(
+    (id: string, patch: Partial<TrainingApplication>) => {
+      setApplications((prev) =>
+        prev.map((item) => {
+          if (item.id !== id) return item;
+          const nextStatus = patch.applicationStatus ?? item.applicationStatus;
+          return {
+            ...item,
+            ...patch,
+            applicationStatus: nextStatus,
+            paymentStatus: patch.paymentStatus
+              ? patch.paymentStatus
+              : patch.applicationStatus
+                ? nextPaymentStatusAfterDecision(
+                    item.paymentStatus ?? "paid",
+                    patch.applicationStatus,
+                    {
+                      voluntarilyWithdrawn:
+                        patch.applicationStatus === "Student Declined",
+                    },
+                  )
+                : item.paymentStatus,
+            updatedAt: new Date().toISOString(),
+          };
+        }),
+      );
+    },
+    [],
+  );
+
   const markApplicationCompleted = useCallback((id: string) => {
     setApplications((prev) =>
       prev.map((item) =>
@@ -278,6 +312,7 @@ export function TrainingApplicationProvider({
       submitApplication,
       submitDirectApplication,
       updateApplicationStatus,
+      patchApplication,
       markApplicationCompleted,
       applicationsFor,
       documentsFor,
@@ -292,6 +327,7 @@ export function TrainingApplicationProvider({
       hydrated,
       latestDocumentOfType,
       markApplicationCompleted,
+      patchApplication,
       submitApplication,
       submitDirectApplication,
       updateApplicationStatus,

@@ -12,6 +12,9 @@ import { resolveStage } from "@/data/journey-dashboard";
 import { getSpecialtiesForField } from "@/data/saudi-specialties";
 import { SAUDI_CITIES, SAUDI_HOSPITAL_NAMES } from "@/data/saudi-hospitals";
 import {
+  applicationMonthKey,
+  applicationStatusLabel,
+  findMonthConflict,
   findTrainingTitle,
   statusToneClass,
   trainingTypeForStage,
@@ -37,11 +40,16 @@ import {
   trainingCities,
   type TrainingOpportunity,
 } from "@/data/training-opportunities";
+import {
+  buildInternshipCalendarMonths,
+  formatInternshipMonthLabel,
+} from "@/data/internship-rotation-seeds";
+import { InternshipCalendarPanel } from "@/components/dashboard/InternshipCalendarPanel";
 import { cn } from "@/lib/cn";
 import { useTrainingApplications } from "@/lib/training-application-store";
 
 type MainArea = "home" | "find" | "detail" | "apply" | "mine";
-type MyTab = "applications" | "upcoming" | "completed";
+type MyTab = "applications" | "calendar" | "confirmed" | "upcoming" | "completed";
 type ApplyStep = 1 | 2 | 3 | 4 | 5;
 
 const FIND_PAGE_SIZE = 8;
@@ -166,12 +174,35 @@ function ApplicationStatusCard({
             statusToneClass(app.applicationStatus),
           )}
         >
-          {app.applicationStatus}
+          {applicationStatusLabel(app.applicationStatus, app.trainingType)}
         </span>
       </div>
       <div className="mt-3 space-y-1 text-[0.8125rem] text-mm-text-muted">
-        <p>{app.month}</p>
+        <p>
+          {app.month} {app.startDate.slice(0, 4)}
+        </p>
         <p>{formatDateRange(app.startDate, app.endDate)}</p>
+        {typeof app.priority === "number" ? (
+          <p>Priority {app.priority}</p>
+        ) : null}
+        {app.applicationStatus === "Alternative Month Proposed" &&
+        app.proposedMonthKey ? (
+          <p>
+            Proposed month: {formatInternshipMonthLabel(app.proposedMonthKey)}
+          </p>
+        ) : null}
+        <p>
+          Payment:{" "}
+          {app.paymentStatus === "unpaid"
+            ? "Unpaid"
+            : app.paymentStatus === "paid"
+              ? "Paid"
+              : app.paymentStatus === "refundPending"
+                ? "Refund Pending"
+                : app.paymentStatus === "refunded"
+                  ? "Refunded"
+                  : app.paymentStatus || "Paid"}
+        </p>
       </div>
       {extra}
       {actions}
@@ -198,6 +229,7 @@ export function TrainingWorkspace({
     latestDocumentOfType,
     uploadDocument,
     updateApplicationStatus,
+    patchApplication,
     markApplicationCompleted,
   } = useTrainingApplications();
 
@@ -227,8 +259,16 @@ export function TrainingWorkspace({
   const [submitError, setSubmitError] = useState("");
   const [justSubmittedId, setJustSubmittedId] = useState<string | null>(null);
   const [applyPaymentPaid, setApplyPaymentPaid] = useState(false);
+  const [calendarConflict, setCalendarConflict] = useState("");
 
   const isSummerElective = trainingType === "summer-elective";
+  const isInternshipRotation = trainingType === "internship-rotation";
+  const requiresApplicationPayment =
+    isSummerElective || isInternshipRotation;
+  const hideFeeAvailabilityFilters =
+    isSummerElective || isInternshipRotation;
+  const hideHospitalFeeOnCards =
+    isSummerElective || isInternshipRotation;
 
   const opportunities = useMemo(() => {
     if (!trainingType) return [];
@@ -262,7 +302,7 @@ export function TrainingWorkspace({
       }
       if (filterDateFrom && o.endDate < filterDateFrom) return false;
       if (filterDateTo && o.startDate > filterDateTo) return false;
-      if (!isSummerElective) {
+      if (!hideFeeAvailabilityFilters) {
         if (filterAvailability === "Available" && o.availableSpots <= 0) {
           return false;
         }
@@ -300,7 +340,7 @@ export function TrainingWorkspace({
     filterHospital,
     filterMonth,
     filterSpecialty,
-    isSummerElective,
+    hideFeeAvailabilityFilters,
     opportunities,
     opportunitySearch,
   ]);
@@ -393,7 +433,7 @@ export function TrainingWorkspace({
 
   function handleSubmit() {
     if (!selected) return;
-    if (isSummerElective && !applyPaymentPaid) {
+    if (requiresApplicationPayment && !applyPaymentPaid) {
       setSubmitError("Please complete payment before submitting.");
       return;
     }
@@ -435,6 +475,90 @@ export function TrainingWorkspace({
     setApplyPaymentPaid(true);
     setSubmitError("");
     setApplyStep(5);
+  }
+
+  function confirmInternshipRotation(app: TrainingApplication) {
+    const monthKey = applicationMonthKey(app);
+    const conflict = findMonthConflict(applications, monthKey, app.id);
+    if (conflict) {
+      setCalendarConflict(
+        `You already have a confirmed rotation for ${formatInternshipMonthLabel(monthKey)}.`,
+      );
+      setMyTab("calendar");
+      return;
+    }
+    setCalendarConflict("");
+    patchApplication(app.id, {
+      applicationStatus: "Student Confirmed",
+      remainingActions: [],
+    });
+  }
+
+  function declineInternshipAcceptance(app: TrainingApplication) {
+    setCalendarConflict("");
+    patchApplication(app.id, {
+      applicationStatus: "Student Declined",
+      remainingActions: [],
+    });
+  }
+
+  function proposeAlternativeMonth(app: TrainingApplication) {
+    const months = buildInternshipCalendarMonths();
+    const currentKey = applicationMonthKey(app);
+    const idx = months.findIndex((m) => m.key === currentKey);
+    const alt = months[(idx >= 0 ? idx + 2 : 2) % months.length];
+    patchApplication(app.id, {
+      applicationStatus: "Alternative Month Proposed",
+      proposedMonthKey: alt.key,
+      proposedStartDate: alt.startDate,
+      proposedEndDate: alt.endDate,
+      hospitalReviewNote: `Alternative month proposed: ${alt.label}`,
+    });
+  }
+
+  function acceptProposedMonth(app: TrainingApplication) {
+    if (!app.proposedMonthKey || !app.proposedStartDate || !app.proposedEndDate) {
+      return;
+    }
+    const conflict = findMonthConflict(
+      applications,
+      app.proposedMonthKey,
+      app.id,
+    );
+    if (conflict) {
+      setCalendarConflict(
+        `You already have a confirmed rotation for ${formatInternshipMonthLabel(app.proposedMonthKey)}.`,
+      );
+      return;
+    }
+    setCalendarConflict("");
+    const [y, m] = app.proposedMonthKey.split("-");
+    const monthName =
+      TRAINING_MONTHS[Number(m) - 1] || app.month;
+    patchApplication(app.id, {
+      applicationStatus: "Student Confirmed",
+      month: monthName,
+      startDate: app.proposedStartDate,
+      endDate: app.proposedEndDate,
+      proposedMonthKey: undefined,
+      proposedStartDate: undefined,
+      proposedEndDate: undefined,
+      remainingActions: [],
+    });
+  }
+
+  function declineProposedMonth(app: TrainingApplication) {
+    patchApplication(app.id, {
+      applicationStatus: "Student Declined",
+      proposedMonthKey: undefined,
+      proposedStartDate: undefined,
+      proposedEndDate: undefined,
+      remainingActions: [],
+    });
+  }
+
+  function setApplicationPriority(appId: string, priority: number) {
+    patchApplication(appId, { priority });
   }
 
   if (compact) {
@@ -492,7 +616,9 @@ export function TrainingWorkspace({
               <p className="mt-2 text-[0.8125rem] text-mm-text-secondary">
                 {isSummerElective
                   ? "Search and browse available summer elective opportunities."
-                  : "Search hospitals, specialties, months, and availability."}
+                  : isInternshipRotation
+                    ? "Search internship rotations by hospital, specialty, city, and month."
+                    : "Search hospitals, specialties, months, and availability."}
               </p>
             </button>
             <button
@@ -504,7 +630,9 @@ export function TrainingWorkspace({
                 My Training
               </p>
               <p className="mt-2 text-[0.8125rem] text-mm-text-secondary">
-                Track applications, upcoming training, and completed records.
+                {isInternshipRotation
+                  ? "Track applications, calendar confirmations, and completed rotations."
+                  : "Track applications, upcoming training, and completed records."}
               </p>
             </button>
           </div>
@@ -528,7 +656,7 @@ export function TrainingWorkspace({
 
       {area === "find" ? (
         <DashboardSection title={discoveryTitle}>
-          {isSummerElective ? (
+          {isSummerElective || isInternshipRotation ? (
             <div className="mb-4">
               <Input
                 label="Search"
@@ -537,7 +665,11 @@ export function TrainingWorkspace({
                   setOpportunitySearch(e.target.value);
                   setVisibleCount(FIND_PAGE_SIZE);
                 }}
-                placeholder="Search opportunities"
+                placeholder={
+                  isInternshipRotation
+                    ? "Search by hospital, specialty, or city"
+                    : "Search opportunities"
+                }
               />
             </div>
           ) : null}
@@ -626,7 +758,7 @@ export function TrainingWorkspace({
                   isSummerElective ? fieldSpecialtyOptions : specialtyOptions
                 }
               />
-              {!isSummerElective ? (
+              {!hideFeeAvailabilityFilters ? (
                 <>
                   <SearchableSelect
                     label="Availability"
@@ -681,7 +813,7 @@ export function TrainingWorkspace({
               <li key={opportunity.id}>
                 <OpportunityCard
                   opportunity={opportunity}
-                  hideHospitalFee={isSummerElective}
+                  hideHospitalFee={hideHospitalFeeOnCards}
                   onOpen={() => openDetail(opportunity.id)}
                 />
               </li>
@@ -767,7 +899,7 @@ export function TrainingWorkspace({
                 {formatMedJourneyFee(selected.medjourneyApplicationFeeSar)}
               </dd>
             </div>
-            {!isSummerElective ? (
+            {!hideHospitalFeeOnCards ? (
               <div>
                 <dt className="font-semibold uppercase tracking-[0.08em] text-mm-text-muted">
                   Hospital or Training Fee
@@ -1073,7 +1205,7 @@ export function TrainingWorkspace({
                 </ul>
               </div>
 
-              {!isSummerElective ? (
+              {!requiresApplicationPayment ? (
                 <div className="rounded-[var(--mm-radius-lg)] border border-mm-border px-4 py-3 text-[0.8125rem]">
                   <p>
                     MedJourney Application Fee
@@ -1109,7 +1241,7 @@ export function TrainingWorkspace({
                 >
                   Back
                 </button>
-                {isSummerElective ? (
+                {requiresApplicationPayment ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -1133,7 +1265,7 @@ export function TrainingWorkspace({
             </div>
           ) : null}
 
-          {applyStep === 4 && isSummerElective ? (
+          {applyStep === 4 && requiresApplicationPayment ? (
             <div className="space-y-5">
               <div className="rounded-[var(--mm-radius-xl)] border border-mm-border px-5 py-6 text-center">
                 <p className="text-[0.8125rem] font-semibold uppercase tracking-[0.12em] text-mm-text-muted">
@@ -1143,7 +1275,10 @@ export function TrainingWorkspace({
                   {formatMedJourneyFee(MEDJOURNEY_APPLICATION_FEE_SAR)}
                 </p>
                 <p className="mt-3 text-[0.875rem] text-mm-text-secondary">
-                  MedJourney application payment for this Summer Elective
+                  MedJourney application payment for this{" "}
+                  {isInternshipRotation
+                    ? "Internship Rotation"
+                    : "Summer Elective"}{" "}
                   application.
                 </p>
               </div>
@@ -1179,7 +1314,7 @@ export function TrainingWorkspace({
             </div>
           ) : null}
 
-          {applyStep === 5 && isSummerElective ? (
+          {applyStep === 5 && requiresApplicationPayment ? (
             <div className="space-y-5">
               <div className="rounded-[var(--mm-radius-xl)] border border-mm-border px-5 py-8 text-center">
                 <p className="text-[1.125rem] font-semibold text-mm-navy">
@@ -1225,12 +1360,18 @@ export function TrainingWorkspace({
           ) : null}
 
           <div className="mb-4 flex gap-2 overflow-x-auto">
-            {(
-              [
-                ["applications", "Applications"],
-                ["upcoming", "Upcoming"],
-                ["completed", "Completed"],
-              ] as const
+            {(isInternshipRotation
+              ? ([
+                  ["applications", "Applications"],
+                  ["calendar", "Calendar"],
+                  ["confirmed", "Confirmed"],
+                  ["completed", "Completed"],
+                ] as const)
+              : ([
+                  ["applications", "Applications"],
+                  ["upcoming", "Upcoming"],
+                  ["completed", "Completed"],
+                ] as const)
             ).map(([id, label]) => (
               <button
                 key={id}
@@ -1263,6 +1404,8 @@ export function TrainingWorkspace({
                     "Waitlisted",
                     "Accepted",
                     "Declined",
+                    "Alternative Month Proposed",
+                    "Student Declined",
                   ].includes(a.applicationStatus),
                 )
                 .map((app) => (
@@ -1302,7 +1445,69 @@ export function TrainingWorkspace({
                             >
                               Demo Decline
                             </button>
+                            {isInternshipRotation ? (
+                              <button
+                                type="button"
+                                onClick={() => proposeAlternativeMonth(app)}
+                                className="min-h-9 rounded-[var(--mm-radius-lg)] border border-mm-border px-2.5 text-[0.6875rem] font-semibold text-mm-navy"
+                              >
+                                Demo Propose Alt Month
+                              </button>
+                            ) : null}
                           </>
+                        ) : null}
+                        {isInternshipRotation &&
+                        app.applicationStatus === "Accepted" ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => confirmInternshipRotation(app)}
+                              className="min-h-9 rounded-[var(--mm-radius-lg)] bg-mm-teal px-2.5 text-[0.6875rem] font-semibold text-white"
+                            >
+                              Confirm Rotation
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => declineInternshipAcceptance(app)}
+                              className="min-h-9 rounded-[var(--mm-radius-lg)] border border-mm-border px-2.5 text-[0.6875rem] font-semibold text-mm-navy"
+                            >
+                              Decline Rotation
+                            </button>
+                          </>
+                        ) : null}
+                        {isInternshipRotation &&
+                        app.applicationStatus ===
+                          "Alternative Month Proposed" ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => acceptProposedMonth(app)}
+                              className="min-h-9 rounded-[var(--mm-radius-lg)] bg-mm-teal px-2.5 text-[0.6875rem] font-semibold text-white"
+                            >
+                              Accept Proposed Month
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => declineProposedMonth(app)}
+                              className="min-h-9 rounded-[var(--mm-radius-lg)] border border-mm-border px-2.5 text-[0.6875rem] font-semibold text-mm-navy"
+                            >
+                              Decline Proposed Month
+                            </button>
+                          </>
+                        ) : null}
+                        {isInternshipRotation ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setApplicationPriority(
+                                app.id,
+                                (app.priority || 0) % 3 + 1,
+                              )
+                            }
+                            className="min-h-9 rounded-[var(--mm-radius-lg)] border border-mm-border px-2.5 text-[0.6875rem] font-semibold text-mm-navy"
+                          >
+                            Set Priority
+                          </button>
                         ) : null}
                       </div>
                     }
@@ -1316,6 +1521,8 @@ export function TrainingWorkspace({
                   "Waitlisted",
                   "Accepted",
                   "Declined",
+                  "Alternative Month Proposed",
+                  "Student Declined",
                 ].includes(a.applicationStatus),
               ).length === 0 ? (
                 <p className="text-[0.875rem] text-mm-text-secondary">
@@ -1325,7 +1532,57 @@ export function TrainingWorkspace({
             </ul>
           ) : null}
 
-          {hydrated && myTab === "upcoming" ? (
+          {hydrated && isInternshipRotation && myTab === "calendar" ? (
+            <InternshipCalendarPanel
+              applications={applications}
+              conflictMessage={calendarConflict}
+              onConfirm={confirmInternshipRotation}
+              onDeclineAcceptance={declineInternshipAcceptance}
+              onAcceptProposedMonth={acceptProposedMonth}
+              onDeclineProposedMonth={declineProposedMonth}
+              onProposeAltMonth={proposeAlternativeMonth}
+            />
+          ) : null}
+
+          {hydrated && isInternshipRotation && myTab === "confirmed" ? (
+            <ul className="space-y-3">
+              {applications
+                .filter(
+                  (a) =>
+                    a.applicationStatus === "Student Confirmed" ||
+                    a.applicationStatus === "Completed",
+                )
+                .map((app) => (
+                  <ApplicationStatusCard
+                    key={app.id}
+                    app={app}
+                    actions={
+                      app.applicationStatus === "Student Confirmed" ? (
+                        <button
+                          type="button"
+                          onClick={() => markApplicationCompleted(app.id)}
+                          className="mt-3 min-h-9 rounded-[var(--mm-radius-lg)] border border-mm-border px-2.5 text-[0.6875rem] font-semibold text-mm-navy"
+                        >
+                          Demo Mark Completed
+                        </button>
+                      ) : null
+                    }
+                  />
+                ))}
+              {applications.filter(
+                (a) =>
+                  a.applicationStatus === "Student Confirmed" ||
+                  a.applicationStatus === "Completed",
+              ).length === 0 ? (
+                <p className="text-[0.875rem] text-mm-text-secondary">
+                  Confirmed rotations will appear here after you confirm a
+                  hospital acceptance.
+                </p>
+              ) : null}
+            </ul>
+          ) : null}
+
+          {hydrated && !isInternshipRotation && myTab === "upcoming" ? (
             <ul className="space-y-3">
               {applications
                 .filter((a) => a.applicationStatus === "Accepted")

@@ -28,6 +28,11 @@ export function SubscriptionAccessGuard({
   useEffect(() => {
     if (!ready) return;
 
+    // DEMO-only direct preview routes may bootstrap access themselves.
+    if (pathname.startsWith("/demo/internship-year")) {
+      return;
+    }
+
     if (!profile.fullName || !profile.email) {
       router.replace("/sign-in");
       return;
@@ -66,7 +71,10 @@ export function SubscriptionAccessGuard({
     );
   }
 
-  if (!profile.onboardingComplete || !canAccessDashboard) {
+  if (
+    !pathname.startsWith("/demo/internship-year") &&
+    (!profile.onboardingComplete || !canAccessDashboard)
+  ) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-mm-bg px-4">
         <p className="text-sm text-mm-text-muted">Checking subscription…</p>

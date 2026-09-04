@@ -7,6 +7,7 @@
 import type { HealthcareField } from "@/data/intern";
 import { SAUDI_HOSPITALS } from "@/data/saudi-hospitals";
 import type { TrainingDocumentType } from "@/data/training-documents";
+import { SEED_INTERNSHIP_ROTATIONS } from "@/data/internship-rotation-seeds";
 
 export type TrainingApplicationType =
   | "summer-elective"
@@ -327,34 +328,8 @@ export const SEED_TRAINING_OPPORTUNITIES: TrainingOpportunity[] = [
     status: "Open",
   },
 
-  // Intern — Internship Rotations
-  {
-    id: "opp-in-ksumc-im-oct",
-    trainingType: "internship-rotation",
-    hospital: KSUMC,
-    city: hospitalCity(KSUMC),
-    healthcareField: "medicine",
-    specialty: "Internal Medicine",
-    subspecialty: "",
-    month: "October",
-    startDate: "2026-10-01",
-    endDate: "2026-10-31",
-    datesFixed: true,
-    availableSpots: 8,
-    applicationDeadline: "2026-09-01",
-    medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
-    hospitalFee: { kind: "none" },
-    requirements: [
-      req("r1", "cv", true, "CV"),
-      req("r2", "university-letter", true, "University Letter"),
-      req("r3", "internship-letter", true, "Internship Letter"),
-      req("r4", "academic-transcript", true, "Academic Transcript"),
-      req("r5", "vaccination-record", true, "Vaccination Record"),
-    ],
-    description:
-      "Structured internship rotation in internal medicine wards.",
-    status: "Open",
-  },
+  // Intern — Internship Rotations (60+ demo opportunities)
+  // Keep a stable id for seed applications / demos.
   {
     id: "opp-in-kfmc-em-nov",
     trainingType: "internship-rotation",
@@ -364,11 +339,11 @@ export const SEED_TRAINING_OPPORTUNITIES: TrainingOpportunity[] = [
     specialty: "Emergency Medicine",
     subspecialty: "",
     month: "November",
-    startDate: "2026-11-01",
-    endDate: "2026-11-30",
+    startDate: "2027-11-01",
+    endDate: "2027-11-30",
     datesFixed: true,
     availableSpots: 4,
-    applicationDeadline: "2026-09-15",
+    applicationDeadline: "2027-09-15",
     medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
     hospitalFee: { kind: "none" },
     requirements: [
@@ -380,35 +355,10 @@ export const SEED_TRAINING_OPPORTUNITIES: TrainingOpportunity[] = [
       req("r6", "health-clearance", true, "Health Clearance"),
     ],
     description:
-      "High acuity emergency internship rotation with supervised shifts.",
+      "High acuity emergency internship rotation with supervised shifts. Demo listing.",
     status: "Open",
   },
-  {
-    id: "opp-in-kamc-surg-dec",
-    trainingType: "internship-rotation",
-    hospital: KAMC_JEDDAH,
-    city: hospitalCity(KAMC_JEDDAH),
-    healthcareField: "medicine",
-    specialty: "General Surgery",
-    subspecialty: "",
-    month: "December",
-    startDate: "2026-12-01",
-    endDate: "2026-12-31",
-    datesFixed: false,
-    availableSpots: 3,
-    applicationDeadline: "2026-10-01",
-    medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
-    hospitalFee: { kind: "fee", amountSar: 75 },
-    requirements: [
-      req("r1", "cv", true, "CV"),
-      req("r2", "internship-letter", true, "Internship Letter"),
-      req("r3", "vaccination-record", true, "Vaccination Record"),
-      req("r4", "national-id", true, "National ID or Iqama"),
-    ],
-    description:
-      "Surgical internship rotation with flexible start within December.",
-    status: "Open",
-  },
+  ...SEED_INTERNSHIP_ROTATIONS,
 
   // Advanced Training
   {
