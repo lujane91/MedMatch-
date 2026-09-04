@@ -81,14 +81,37 @@ export type Rotation = {
   changesDeadline?: string;
 };
 
+/** How the user verifies identity during onboarding (prototype). */
+export type IdentityType = "national-id" | "iqama" | "passport";
+
 export type InternProfile = {
   fullName: string;
   firstName: string;
   middleName: string;
   lastName: string;
   dateOfBirth: string;
-  /** National ID or Iqama — collected for future real Nafath verification. */
+  /** Country of nationality (e.g. Saudi Arabia). */
+  nationality: string;
+  /**
+   * Non-Saudi only: whether the user holds a Saudi residency permit (Iqama).
+   * null when not applicable (Saudi) or unanswered.
+   */
+  hasSaudiIqama: boolean | null;
+  /** Active identity verification route. */
+  identityType: IdentityType | null;
+  /**
+   * National ID Number (Saudi) or Iqama Number (non-Saudi with Iqama).
+   * Cleared for passport-route users.
+   */
   nationalId: string;
+  /** Passport number for non-Saudi users without Iqama. */
+  passportNumber: string;
+  /**
+   * Prototype passport copy upload (data URL). Identity verification only —
+   * never display on dashboard, profile, or MedJourney Passport.
+   */
+  passportCopyDataUrl: string;
+  passportCopyFileName: string;
   email: string;
   mobile: string;
   trainingStage: TrainingStage | null;
@@ -117,6 +140,38 @@ export type InternProfile = {
   identityVerified: boolean;
   onboardingComplete: boolean;
 };
+
+/** Resolve Nafath vs passport identity route from nationality + Iqama answers. */
+export function resolveIdentityRoute(
+  nationality: string | null | undefined,
+  hasSaudiIqama: boolean | null | undefined,
+): { requiresNafath: boolean; identityType: IdentityType | null } {
+  const nation = nationality?.trim() ?? "";
+  if (!nation) return { requiresNafath: false, identityType: null };
+  if (nation === "Saudi Arabia") {
+    return { requiresNafath: true, identityType: "national-id" };
+  }
+  if (hasSaudiIqama === true) {
+    return { requiresNafath: true, identityType: "iqama" };
+  }
+  if (hasSaudiIqama === false) {
+    return { requiresNafath: false, identityType: "passport" };
+  }
+  return { requiresNafath: false, identityType: null };
+}
+
+export function requiresNafathVerification(
+  profile: Pick<InternProfile, "identityType" | "nationality" | "hasSaudiIqama">,
+) {
+  if (profile.identityType) {
+    return (
+      profile.identityType === "national-id" ||
+      profile.identityType === "iqama"
+    );
+  }
+  return resolveIdentityRoute(profile.nationality, profile.hasSaudiIqama)
+    .requiresNafath;
+}
 
 export const healthcareFields: {
   id: HealthcareField;

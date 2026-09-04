@@ -14,6 +14,7 @@ import {
   type PaymentMethod,
 } from "@/data/subscription";
 import { cn } from "@/lib/cn";
+import { requiresNafathVerification } from "@/data/intern";
 import { useInternStore } from "@/lib/intern-store";
 import { usePlatformSubscriptionPlanStore } from "@/lib/platform-subscription-plan-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
@@ -44,13 +45,21 @@ export default function SubscriptionPayClient() {
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
 
+  const needsNafath = requiresNafathVerification(profile);
+
   useEffect(() => {
     if (!internHydrated) return;
     if (isRenew) return;
-    if (!profile.identityVerified) {
+    if (!profile.identityVerified && needsNafath) {
       router.replace("/onboarding/nafath");
     }
-  }, [internHydrated, isRenew, profile.identityVerified, router]);
+  }, [
+    internHydrated,
+    isRenew,
+    needsNafath,
+    profile.identityVerified,
+    router,
+  ]);
 
   const livePlan = useMemo(
     () => ({
@@ -65,12 +74,20 @@ export default function SubscriptionPayClient() {
   );
 
   const priceLabel = formatPlanPrice(catalogPlan);
-  const backHref = isRenew ? "/billing" : "/onboarding/nafath";
+  const backHref = isRenew
+    ? "/billing"
+    : needsNafath
+      ? "/onboarding/nafath"
+      : "/create-account";
 
   async function runPayment(forceFail: boolean) {
     setError("");
-    if (!isRenew && !profile.identityVerified) {
+    if (!isRenew && !profile.identityVerified && needsNafath) {
       router.replace("/onboarding/nafath");
+      return;
+    }
+    if (!isRenew && !profile.identityVerified && !needsNafath) {
+      router.replace("/create-account");
       return;
     }
     if (catalogPlan.status !== "Active") {

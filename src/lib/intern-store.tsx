@@ -61,7 +61,13 @@ const defaultProfile: InternProfile = {
   middleName: "",
   lastName: "",
   dateOfBirth: "",
+  nationality: "",
+  hasSaudiIqama: null,
+  identityType: null,
   nationalId: "",
+  passportNumber: "",
+  passportCopyDataUrl: "",
+  passportCopyFileName: "",
   email: "",
   mobile: "",
   trainingStage: null,
@@ -111,7 +117,19 @@ function loadState(): InternState {
         middleName: parsed.profile.middleName ?? defaultProfile.middleName,
         lastName: parsed.profile.lastName ?? defaultProfile.lastName,
         dateOfBirth: parsed.profile.dateOfBirth ?? defaultProfile.dateOfBirth,
+        nationality: parsed.profile.nationality ?? defaultProfile.nationality,
+        hasSaudiIqama:
+          parsed.profile.hasSaudiIqama ?? defaultProfile.hasSaudiIqama,
+        identityType: parsed.profile.identityType ?? defaultProfile.identityType,
         nationalId: parsed.profile.nationalId ?? defaultProfile.nationalId,
+        passportNumber:
+          parsed.profile.passportNumber ?? defaultProfile.passportNumber,
+        passportCopyDataUrl:
+          parsed.profile.passportCopyDataUrl ??
+          defaultProfile.passportCopyDataUrl,
+        passportCopyFileName:
+          parsed.profile.passportCopyFileName ??
+          defaultProfile.passportCopyFileName,
         photoDataUrl: parsed.profile.photoDataUrl ?? defaultProfile.photoDataUrl,
         trainingProgramKind: parsed.profile.trainingProgramKind ?? null,
       },

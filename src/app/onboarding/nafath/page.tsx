@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { AuthShell } from "@/components/AuthShell";
 import { Input } from "@/components/ui";
+import { requiresNafathVerification } from "@/data/intern";
 import { continueToSubscriptionPayment } from "@/lib/continue-to-subscription";
 import { useInternStore } from "@/lib/intern-store";
 import { usePlatformSubscriptionPlanStore } from "@/lib/platform-subscription-plan-store";
@@ -27,6 +28,31 @@ export default function NafathVerificationPage() {
   const [step, setStep] = useState<NafathStep>("start");
   const [nationalId, setNationalId] = useState("");
   const [prefilled, setPrefilled] = useState(false);
+
+  const needsNafath = requiresNafathVerification(profile);
+  const idLabel =
+    profile.identityType === "iqama" ? "Iqama Number" : "National ID Number";
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (profile.identityType === "passport") {
+      if (profile.identityVerified) {
+        router.replace("/subscription/pay");
+      } else {
+        router.replace("/create-account");
+      }
+      return;
+    }
+    if (!needsNafath) {
+      router.replace("/create-account");
+    }
+  }, [
+    hydrated,
+    needsNafath,
+    profile.identityType,
+    profile.identityVerified,
+    router,
+  ]);
 
   useEffect(() => {
     if (!hydrated || prefilled) return;
@@ -74,6 +100,13 @@ export default function NafathVerificationPage() {
     setStep("waiting");
   }
 
+  if (
+    hydrated &&
+    (profile.identityType === "passport" || !needsNafath)
+  ) {
+    return null;
+  }
+
   return (
     <AuthShell
       title="Verify your identity"
@@ -85,12 +118,12 @@ export default function NafathVerificationPage() {
       {step === "start" ? (
         <div className="space-y-4">
           <Input
-            label="National ID or Iqama Number"
+            label={idLabel}
             name="nationalId"
             inputMode="numeric"
             pattern="[0-9]*"
             autoComplete="off"
-            placeholder="Enter your National ID or Iqama number"
+            placeholder={`Enter your ${idLabel}`}
             value={nationalId}
             onChange={(e) => {
               const digits = e.target.value.replace(/\D/g, "").slice(0, 10);

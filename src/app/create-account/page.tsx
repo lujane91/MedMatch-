@@ -9,16 +9,20 @@ import {
   composeFullName,
   journeyPathsForField,
   needsProfessionalLevel,
+  resolveIdentityRoute,
   trainingStageLabel,
   type HealthcareField,
   type ProfessionalLevel,
   type TrainingStage,
 } from "@/data/intern";
+import { NATIONALITY_COUNTRIES } from "@/data/countries";
 import { SAUDI_HOSPITAL_NAMES } from "@/data/saudi-hospitals";
 import { getSpecialtiesForField } from "@/data/saudi-specialties";
 import { getSubspecialtiesForSpecialty } from "@/data/saudi-subspecialties";
 import { SAUDI_UNIVERSITY_NAMES } from "@/data/saudi-universities";
+import { continueToSubscriptionPayment } from "@/lib/continue-to-subscription";
 import { useInternStore } from "@/lib/intern-store";
+import { usePlatformSubscriptionPlanStore } from "@/lib/platform-subscription-plan-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 
 const yearOptions = [
@@ -131,15 +135,31 @@ function stageFromOnboardingLabel(label: string): TrainingStage | null {
 
 export default function CreateAccountPage() {
   const router = useRouter();
-  const { profile, setAccountBasics, updateProfile } = useInternStore();
-  const { resetForNewAccount } = useSubscriptionStore();
+  const { profile, setAccountBasics, updateProfile, completeOnboarding } =
+    useInternStore();
+  const { resetForNewAccount, markUnpaidProgress } = useSubscriptionStore();
+  const { plan } = usePlatformSubscriptionPlanStore();
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const passportInputRef = useRef<HTMLInputElement>(null);
 
   const [firstName, setFirstName] = useState(profile.firstName || "");
   const [middleName, setMiddleName] = useState(profile.middleName || "");
   const [lastName, setLastName] = useState(profile.lastName || "");
   const [dateOfBirth, setDateOfBirth] = useState(profile.dateOfBirth || "");
+  const [nationality, setNationality] = useState(profile.nationality || "");
+  const [hasSaudiIqama, setHasSaudiIqama] = useState<boolean | null>(
+    profile.hasSaudiIqama,
+  );
   const [nationalId, setNationalId] = useState(profile.nationalId || "");
+  const [passportNumber, setPassportNumber] = useState(
+    profile.passportNumber || "",
+  );
+  const [passportCopyDataUrl, setPassportCopyDataUrl] = useState(
+    profile.passportCopyDataUrl || "",
+  );
+  const [passportCopyFileName, setPassportCopyFileName] = useState(
+    profile.passportCopyFileName || "",
+  );
   const [personalEmail, setPersonalEmail] = useState(profile.email || "");
   const [institutionEmail, setInstitutionEmail] = useState(
     profile.institutionEmail || "",
@@ -169,6 +189,16 @@ export default function CreateAccountPage() {
   const [subspecialty, setSubspecialty] = useState(profile.subspecialty || "");
   const [error, setError] = useState("");
 
+  const { requiresNafath, identityType } = resolveIdentityRoute(
+    nationality,
+    hasSaudiIqama,
+  );
+  const isSaudi = nationality === "Saudi Arabia";
+  const isNonSaudi = Boolean(nationality) && !isSaudi;
+  const showNationalId = identityType === "national-id";
+  const showIqamaNumber = identityType === "iqama";
+  const showPassportFields = identityType === "passport";
+
   const journeyPathOptions = useMemo(() => {
     return journeyPathsForField(field).map((id) => onboardingJourneyLabel(id));
   }, [field]);
@@ -196,6 +226,30 @@ export default function CreateAccountPage() {
     stage === "medical-practice" &&
     showProfessionalLevel &&
     professionalLevel === "consultant";
+
+  function onNationalityChange(next: string) {
+    setNationality(next);
+    setHasSaudiIqama(null);
+    setNationalId("");
+    setPassportNumber("");
+    setPassportCopyDataUrl("");
+    setPassportCopyFileName("");
+  }
+
+  function onIqamaStatusChange(next: string) {
+    if (next === "Yes") {
+      setHasSaudiIqama(true);
+      setPassportNumber("");
+      setPassportCopyDataUrl("");
+      setPassportCopyFileName("");
+      return;
+    }
+    if (next === "No") {
+      setHasSaudiIqama(false);
+      setNationalId("");
+      return;
+    }
+  }
 
   function onFieldChange(nextTitle: string) {
     const next =
@@ -257,6 +311,22 @@ export default function CreateAccountPage() {
     reader.readAsDataURL(file);
   }
 
+  function onPassportCopySelected(file: File | null) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      setPassportCopyDataUrl(result);
+      setPassportCopyFileName(file.name);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function viewPassportCopy() {
+    if (!passportCopyDataUrl) return;
+    window.open(passportCopyDataUrl, "_blank", "noopener,noreferrer");
+  }
+
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -265,7 +335,7 @@ export default function CreateAccountPage() {
       !firstName.trim() ||
       !lastName.trim() ||
       !dateOfBirth ||
-      !nationalId.trim() ||
+      !nationality.trim() ||
       !personalEmail.trim() ||
       !institutionEmail.trim() ||
       !mobile.trim()
@@ -273,6 +343,37 @@ export default function CreateAccountPage() {
       setError("Please complete all required personal details.");
       return;
     }
+
+    if (isNonSaudi && hasSaudiIqama === null) {
+      setError(
+        "Please indicate whether you currently hold a Saudi residency permit (Iqama).",
+      );
+      return;
+    }
+
+    if (
+      (showNationalId || showIqamaNumber) &&
+      !/^\d{10}$/.test(nationalId.trim())
+    ) {
+      setError(
+        showIqamaNumber
+          ? "Please enter a valid 10-digit Iqama Number."
+          : "Please enter a valid 10-digit National ID Number.",
+      );
+      return;
+    }
+
+    if (showPassportFields) {
+      if (!passportNumber.trim()) {
+        setError("Please enter your Passport Number.");
+        return;
+      }
+      if (!passportCopyDataUrl) {
+        setError("Please upload a copy of your passport.");
+        return;
+      }
+    }
+
     if (password.length < 6) {
       setError("Password must be at least 6 characters.");
       return;
@@ -333,6 +434,11 @@ export default function CreateAccountPage() {
       }
     }
 
+    if (!identityType) {
+      setError("Please complete your identity verification details.");
+      return;
+    }
+
     const fullName = composeFullName(firstName, middleName, lastName);
     const isUniversityStage =
       stage === "medical-student" || stage === "intern";
@@ -360,6 +466,16 @@ export default function CreateAccountPage() {
           ? subspecialty.trim()
           : "";
 
+    const storedNationalId =
+      showNationalId || showIqamaNumber ? nationalId.trim() : "";
+    const storedPassportNumber = showPassportFields
+      ? passportNumber.trim()
+      : "";
+    const storedPassportCopy = showPassportFields ? passportCopyDataUrl : "";
+    const storedPassportFileName = showPassportFields
+      ? passportCopyFileName
+      : "";
+
     resetForNewAccount();
     setAccountBasics({
       fullName,
@@ -367,13 +483,20 @@ export default function CreateAccountPage() {
       mobile: mobile.trim(),
       password,
     });
-    updateProfile({
+
+    const nextProfile = {
       firstName: firstName.trim(),
       middleName: middleName.trim(),
       lastName: lastName.trim(),
       fullName,
       dateOfBirth,
-      nationalId: nationalId.trim(),
+      nationality: nationality.trim(),
+      hasSaudiIqama: isSaudi ? null : hasSaudiIqama,
+      identityType,
+      nationalId: storedNationalId,
+      passportNumber: storedPassportNumber,
+      passportCopyDataUrl: storedPassportCopy,
+      passportCopyFileName: storedPassportFileName,
       institutionEmail: institutionEmail.trim(),
       field,
       trainingStage: stage,
@@ -390,10 +513,30 @@ export default function CreateAccountPage() {
       trainingProgramKind: null,
       photoUploaded: Boolean(photoDataUrl),
       photoDataUrl,
-      identityVerified: false,
+      identityVerified: !requiresNafath,
       onboardingComplete: false,
+    };
+
+    updateProfile(nextProfile);
+
+    if (requiresNafath) {
+      router.push("/onboarding/nafath");
+      return;
+    }
+
+    continueToSubscriptionPayment({
+      profile: {
+        ...profile,
+        ...nextProfile,
+        email: personalEmail.trim(),
+        mobile: mobile.trim(),
+        identityVerified: true,
+      },
+      plan,
+      completeOnboarding,
+      markUnpaidProgress,
+      router,
     });
-    router.push("/onboarding/nafath");
   }
 
   return (
@@ -486,14 +629,128 @@ export default function CreateAccountPage() {
             onChange={(e) => setDateOfBirth(e.target.value)}
             required
           />
-          <Input
-            label="National ID or Iqama Number"
-            name="nationalId"
-            inputMode="numeric"
-            value={nationalId}
-            onChange={(e) => setNationalId(e.target.value)}
+          <SearchableSelect
+            id="nationality"
+            label="Nationality"
+            value={nationality}
+            onChange={onNationalityChange}
+            options={NATIONALITY_COUNTRIES}
+            placeholder="Select nationality"
+            allowOther={false}
             required
           />
+          {isNonSaudi ? (
+            <SearchableSelect
+              id="has-saudi-iqama"
+              label="Do you currently hold a Saudi residency permit (Iqama)?"
+              value={
+                hasSaudiIqama === true
+                  ? "Yes"
+                  : hasSaudiIqama === false
+                    ? "No"
+                    : ""
+              }
+              onChange={onIqamaStatusChange}
+              options={["Yes", "No"]}
+              placeholder="Select"
+              allowOther={false}
+              searchable={false}
+              required
+            />
+          ) : null}
+          {showNationalId ? (
+            <Input
+              label="National ID Number"
+              name="nationalId"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              placeholder="Enter your National ID Number"
+              value={nationalId}
+              onChange={(e) =>
+                setNationalId(e.target.value.replace(/\D/g, "").slice(0, 10))
+              }
+              required
+            />
+          ) : null}
+          {showIqamaNumber ? (
+            <Input
+              label="Iqama Number"
+              name="iqamaNumber"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              placeholder="Enter your Iqama Number"
+              value={nationalId}
+              onChange={(e) =>
+                setNationalId(e.target.value.replace(/\D/g, "").slice(0, 10))
+              }
+              required
+            />
+          ) : null}
+          {showPassportFields ? (
+            <>
+              <Input
+                label="Passport Number"
+                name="passportNumber"
+                autoComplete="off"
+                placeholder="Enter your Passport Number"
+                value={passportNumber}
+                onChange={(e) => setPassportNumber(e.target.value)}
+                required
+              />
+              <div className="w-full">
+                <p className="mb-1.5 text-[0.8125rem] font-medium text-mm-navy">
+                  Passport Copy
+                </p>
+                <p className="mb-2 text-[0.75rem] text-mm-text-muted">
+                  Upload the information page of your passport for identity
+                  verification.
+                </p>
+                {passportCopyDataUrl ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[0.875rem] font-medium text-mm-navy">
+                      Passport uploaded
+                      {passportCopyFileName
+                        ? ` · ${passportCopyFileName}`
+                        : ""}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={viewPassportCopy}
+                      className="min-h-10 rounded-[var(--mm-radius-lg)] border border-mm-border px-3 text-[0.8125rem] font-semibold text-mm-navy"
+                    >
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => passportInputRef.current?.click()}
+                      className="min-h-10 rounded-[var(--mm-radius-lg)] border border-mm-border px-3 text-[0.8125rem] font-semibold text-mm-navy"
+                    >
+                      Replace
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => passportInputRef.current?.click()}
+                    className="min-h-10 rounded-[var(--mm-radius-lg)] border border-mm-border px-3 text-[0.8125rem] font-semibold text-mm-navy"
+                  >
+                    Upload Passport
+                  </button>
+                )}
+                <input
+                  ref={passportInputRef}
+                  type="file"
+                  accept="image/*,.pdf,application/pdf"
+                  className="hidden"
+                  onChange={(e) =>
+                    onPassportCopySelected(e.target.files?.[0] ?? null)
+                  }
+                />
+              </div>
+            </>
+          ) : null}
           <Input
             label="Mobile Number"
             name="mobile"
