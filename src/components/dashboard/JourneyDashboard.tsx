@@ -7,6 +7,7 @@ import { DashboardIdentity } from "@/components/dashboard/DashboardIdentity";
 import { MyJourneyCard } from "@/components/dashboard/MyJourneyCard";
 import { NeedsAttention } from "@/components/dashboard/NeedsAttention";
 import { ResearchWorkspace } from "@/components/dashboard/ResearchWorkspace";
+import { CoursesWorkspace } from "@/components/dashboard/CoursesWorkspace";
 import { ConferencesWorkspace } from "@/components/dashboard/ConferencesWorkspace";
 import { CareerWorkspace } from "@/components/dashboard/CareerWorkspace";
 import { TrainingWorkspace } from "@/components/dashboard/TrainingWorkspace";
@@ -24,7 +25,13 @@ import { useEffect, useMemo } from "react";
 export function JourneyDashboard({
   focus,
 }: {
-  focus?: "overview" | "training" | "research" | "conferences" | "career";
+  focus?:
+    | "overview"
+    | "training"
+    | "research"
+    | "courses"
+    | "conferences"
+    | "career";
 }) {
   const { profile, hydrated } = useInternStore();
   const { isExpiringSoon, setExpiringSoonWindowDays } = useSubscriptionStore();
@@ -86,11 +93,13 @@ export function JourneyDashboard({
       ? config.trainingTitle || "Training"
       : focus === "research"
         ? "Research"
-        : focus === "conferences"
-          ? "Conferences"
-          : focus === "career"
-            ? "Career"
-            : "Journey";
+        : focus === "courses"
+          ? "Courses"
+          : focus === "conferences"
+            ? "Conferences"
+            : focus === "career"
+              ? "Career"
+              : "Journey";
 
   return (
     <AppShell title={title}>
@@ -111,6 +120,7 @@ export function JourneyDashboard({
               />
             ) : null}
             <ResearchWorkspace profile={profile} compact />
+            <CoursesWorkspace profile={profile} compact />
             <ConferencesWorkspace profile={profile} compact />
             <CareerWorkspace profile={profile} compact />
             <DemoPersonaSwitcher />
@@ -140,6 +150,9 @@ export function JourneyDashboard({
 
         {focus === "research" ? (
           <ResearchWorkspace profile={profile} />
+        ) : null}
+        {focus === "courses" ? (
+          <CoursesWorkspace profile={profile} />
         ) : null}
         {focus === "conferences" ? (
           <ConferencesWorkspace profile={profile} />

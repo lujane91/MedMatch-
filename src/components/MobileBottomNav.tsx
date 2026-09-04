@@ -7,6 +7,7 @@ import {
   CalendarRange,
   Compass,
   FlaskConical,
+  GraduationCap,
   LayoutDashboard,
   Mic2,
 } from "lucide-react";
@@ -18,6 +19,7 @@ const iconById = {
   journey: LayoutDashboard,
   training: CalendarRange,
   research: FlaskConical,
+  courses: GraduationCap,
   conferences: Mic2,
   career: Briefcase,
 } as const;

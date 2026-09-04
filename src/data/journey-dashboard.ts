@@ -20,6 +20,7 @@ export type JourneyNavId =
   | "journey"
   | "training"
   | "research"
+  | "courses"
   | "conferences"
   | "career";
 
@@ -109,6 +110,7 @@ export function getJourneyNavItems(stage: TrainingStage | null) {
   }
   items.push(
     { id: "research", href: "/research", label: "Research" },
+    { id: "courses", href: "/courses", label: "Courses" },
     { id: "conferences", href: "/conferences", label: "Conferences" },
     { id: "career", href: "/career", label: "Career" },
   );
