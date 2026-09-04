@@ -8,7 +8,6 @@ import { Input, SearchableSelect } from "@/components/ui";
 import {
   composeFullName,
   fieldLabel,
-  formatTrainingYearProgress,
   professionalLevelLabel,
   trainingStageLabel,
   type InternProfile,
@@ -165,10 +164,6 @@ function CollapsibleSection({
 
 function journeyRows(profile: InternProfile) {
   const stage = resolveStage(profile.trainingStage);
-  const year = formatTrainingYearProgress(
-    profile.currentYear,
-    profile.totalYears,
-  );
   const rows: { label: string; value: string }[] = [
     { label: "Healthcare Field", value: fieldLabel(profile.field) },
     {
@@ -182,13 +177,22 @@ function journeyRows(profile: InternProfile) {
       label: "University Name",
       value: profile.university || getInstitution(profile),
     });
-    if (year) {
+    if (profile.currentYear.trim()) {
       rows.push({
         label:
           stage === "medical-student"
-            ? "Academic Year"
-            : "Internship Year",
-        value: year,
+            ? "Current Academic Year"
+            : "Current Internship Year",
+        value: profile.currentYear,
+      });
+    }
+    if (profile.totalYears.trim()) {
+      rows.push({
+        label:
+          stage === "medical-student"
+            ? "Total Academic Years"
+            : "Total Internship Years",
+        value: profile.totalYears,
       });
     }
   }
@@ -202,15 +206,26 @@ function journeyRows(profile: InternProfile) {
     if (stage === "fellow" || profile.subspecialty.trim()) {
       rows.push({ label: "Subspecialty", value: profile.subspecialty });
     }
-    if (year) {
+    if (profile.currentYear.trim()) {
       rows.push({
         label:
           stage === "resident"
-            ? "Residency Year"
+            ? "Current Residency Year"
             : stage === "fellow"
-              ? "Fellowship Year"
-              : "Training Year",
-        value: year,
+              ? "Current Fellowship Year"
+              : "Current Training Year",
+        value: profile.currentYear,
+      });
+    }
+    if (profile.totalYears.trim()) {
+      rows.push({
+        label:
+          stage === "resident"
+            ? "Total Residency Years"
+            : stage === "fellow"
+              ? "Total Fellowship Years"
+              : "Total Training Years",
+        value: profile.totalYears,
       });
     }
   }
@@ -1384,6 +1399,8 @@ function CourseForm({
   const [endDate, setEndDate] = useState("");
   const [courseType, setCourseType] = useState("Certification");
   const [certificateAvailable, setCertificateAvailable] = useState(false);
+  const [certificateDataUrl, setCertificateDataUrl] = useState("");
+  const [certificateFileName, setCertificateFileName] = useState("");
   const [expirationDate, setExpirationDate] = useState("");
 
   return (
@@ -1402,6 +1419,8 @@ function CourseForm({
           endDate: endDate || undefined,
           courseType,
           certificateAvailable,
+          certificateDataUrl: certificateDataUrl || undefined,
+          certificateFileName: certificateFileName || undefined,
           expirationDate: expirationDate || undefined,
         });
       }}
@@ -1461,6 +1480,35 @@ function CourseForm({
         />
         Certificate available
       </label>
+      {certificateAvailable ? (
+        <div>
+          <label className="mb-1.5 block text-[0.8125rem] font-medium text-mm-navy">
+            Certificate Upload
+          </label>
+          <input
+            type="file"
+            accept="image/*,.pdf"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => {
+                setCertificateDataUrl(
+                  typeof reader.result === "string" ? reader.result : "",
+                );
+                setCertificateFileName(file.name);
+              };
+              reader.readAsDataURL(file);
+            }}
+            className="block w-full text-[0.8125rem]"
+          />
+          {certificateFileName ? (
+            <p className="mt-1 text-[0.75rem] text-mm-text-muted">
+              {certificateFileName}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <Input
         label="Expiration Date"
         type="date"
@@ -1490,6 +1538,8 @@ function CertificationForm({
   const [expirationDate, setExpirationDate] = useState("");
   const [credentialId, setCredentialId] = useState("");
   const [credentialLink, setCredentialLink] = useState("");
+  const [certificateDataUrl, setCertificateDataUrl] = useState("");
+  const [certificateFileName, setCertificateFileName] = useState("");
 
   return (
     <form
@@ -1504,6 +1554,8 @@ function CertificationForm({
           expirationDate: expirationDate || undefined,
           credentialId: credentialId.trim() || undefined,
           credentialLink: credentialLink.trim() || undefined,
+          certificateDataUrl: certificateDataUrl || undefined,
+          certificateFileName: certificateFileName || undefined,
         });
       }}
     >
@@ -1544,6 +1596,33 @@ function CertificationForm({
         value={credentialLink}
         onChange={(e) => setCredentialLink(e.target.value)}
       />
+      <div>
+        <label className="mb-1.5 block text-[0.8125rem] font-medium text-mm-navy">
+          Certificate Upload
+        </label>
+        <input
+          type="file"
+          accept="image/*,.pdf"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+              setCertificateDataUrl(
+                typeof reader.result === "string" ? reader.result : "",
+              );
+              setCertificateFileName(file.name);
+            };
+            reader.readAsDataURL(file);
+          }}
+          className="block w-full text-[0.8125rem]"
+        />
+        {certificateFileName ? (
+          <p className="mt-1 text-[0.75rem] text-mm-text-muted">
+            {certificateFileName}
+          </p>
+        ) : null}
+      </div>
       <FormActions onCancel={onCancel} submitLabel="Save Certification" />
     </form>
   );
