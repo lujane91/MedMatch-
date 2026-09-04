@@ -153,51 +153,6 @@ function YearOutOfTotal({
   );
 }
 
-function ChoiceGroup<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: { id: T; title: string; subtitle?: string }[];
-  value: T | null;
-  onChange: (next: T) => void;
-}) {
-  return (
-    <div>
-      <p className="mb-2 text-[0.8125rem] font-medium text-mm-navy">{label}</p>
-      <div className="grid gap-2">
-        {options.map((option) => {
-          const selected = value === option.id;
-          return (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => onChange(option.id)}
-              className={cn(
-                "rounded-[var(--mm-radius-lg)] border px-4 py-3 text-left transition-colors",
-                selected
-                  ? "border-mm-teal bg-mm-teal-50"
-                  : "border-mm-border bg-mm-white",
-              )}
-            >
-              <p className="text-[0.9375rem] font-semibold text-mm-navy">
-                {option.title}
-              </p>
-              {option.subtitle ? (
-                <p className="mt-0.5 text-[0.75rem] text-mm-text-muted">
-                  {option.subtitle}
-                </p>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function yearProgressLabel(stage: TrainingStage | null) {
   if (stage === "medical-student") return "Current Academic Year";
   if (stage === "intern") return "Current Internship Year";
@@ -245,15 +200,10 @@ export default function CreateAccountPage() {
   const [error, setError] = useState("");
 
   const journeyPathOptions = useMemo(() => {
-    return journeyPathsForField(field).map((id) => ({
-      id,
-      title: trainingStageLabel(id),
-      subtitle:
-        id === "advanced-training"
-          ? "For Nursing, Pharmacy and Allied Health"
-          : undefined,
-    }));
+    return journeyPathsForField(field).map((id) => trainingStageLabel(id));
   }, [field]);
+
+  const journeyPathValue = stage ? trainingStageLabel(stage) : "";
 
   const specialtyOptions = useMemo(() => {
     if (stage === "advanced-training") {
@@ -270,18 +220,25 @@ export default function CreateAccountPage() {
   const showProfessionalLevel = needsProfessionalLevel(stage, field);
   const showSpecialtyForPractice =
     stage === "medical-practice" &&
+    showProfessionalLevel &&
     (professionalLevel === "specialist" ||
       professionalLevel === "consultant" ||
       professionalLevel === "gp");
   const specialtyRequiredForPractice =
     professionalLevel === "specialist" || professionalLevel === "consultant";
-  const showOptionalSubspecialty =
-    (stage === "fellow" && subspecialtyOptions.length > 0) ||
-    (showProfessionalLevel &&
-      professionalLevel === "consultant" &&
-      subspecialtyOptions.length > 0);
+  const showFellowSubspecialty =
+    stage === "fellow" && Boolean(specialty) && subspecialtyOptions.length > 0;
+  const showConsultantSubspecialty =
+    stage === "medical-practice" &&
+    professionalLevel === "consultant" &&
+    Boolean(specialty) &&
+    subspecialtyOptions.length > 0;
 
-  function onFieldChange(next: HealthcareField) {
+  function onFieldChange(nextTitle: string) {
+    const next =
+      HEALTHCARE_FIELD_OPTIONS.find((item) => item.title === nextTitle)?.id ??
+      null;
+    if (!next) return;
     setField(next);
     setSpecialty("");
     setSubspecialty("");
@@ -296,7 +253,12 @@ export default function CreateAccountPage() {
     }
   }
 
-  function onStageChange(next: TrainingStage) {
+  function onStageChange(nextLabel: string) {
+    const next =
+      (journeyPathsForField(field).find(
+        (id) => trainingStageLabel(id) === nextLabel,
+      ) as TrainingStage | undefined) ?? null;
+    if (!next) return;
     setStage(next);
     setProfessionalLevel(null);
     setSpecialty("");
@@ -305,6 +267,19 @@ export default function CreateAccountPage() {
     setTrainingInstitution("");
     setCurrentYear("");
     setTotalYears("");
+  }
+
+  function onProfessionalLevelChange(nextTitle: string) {
+    const next =
+      PROFESSIONAL_LEVEL_OPTIONS.find((item) => item.title === nextTitle)?.id ??
+      null;
+    if (!next) return;
+    setProfessionalLevel(next);
+    if (next !== "consultant") setSubspecialty("");
+    if (next === "gp") {
+      // Specialty remains optional for GP; clear subspecialty.
+      setSubspecialty("");
+    }
   }
 
   function onSpecialtyChange(next: string) {
@@ -612,19 +587,28 @@ export default function CreateAccountPage() {
             </p>
           </div>
 
-          <ChoiceGroup
+          <SelectField
+            id="healthcareField"
             label="Healthcare Field"
-            options={HEALTHCARE_FIELD_OPTIONS}
-            value={field}
+            value={
+              field
+                ? (HEALTHCARE_FIELD_OPTIONS.find((item) => item.id === field)
+                    ?.title ?? "")
+                : ""
+            }
             onChange={onFieldChange}
+            options={HEALTHCARE_FIELD_OPTIONS.map((item) => item.title)}
+            required
           />
 
           {field ? (
-            <ChoiceGroup
+            <SelectField
+              id="journeyPath"
               label="Journey Path"
-              options={journeyPathOptions}
-              value={stage}
+              value={journeyPathValue}
               onChange={onStageChange}
+              options={journeyPathOptions}
+              required
             />
           ) : null}
 
@@ -742,7 +726,7 @@ export default function CreateAccountPage() {
                 options={specialtyOptions}
                 required
               />
-              {subspecialtyOptions.length > 0 ? (
+              {showFellowSubspecialty ? (
                 <SearchableSelect
                   label="Subspecialty"
                   value={subspecialty}
@@ -765,6 +749,22 @@ export default function CreateAccountPage() {
 
           {stage === "medical-practice" ? (
             <>
+              {showProfessionalLevel ? (
+                <SelectField
+                  id="professionalLevel"
+                  label="Professional Level"
+                  value={
+                    professionalLevel
+                      ? (PROFESSIONAL_LEVEL_OPTIONS.find(
+                          (item) => item.id === professionalLevel,
+                        )?.title ?? "")
+                      : ""
+                  }
+                  onChange={onProfessionalLevelChange}
+                  options={PROFESSIONAL_LEVEL_OPTIONS.map((item) => item.title)}
+                  required
+                />
+              ) : null}
               <SearchableSelect
                 label="Hospital or University Name"
                 value={trainingInstitution}
@@ -772,18 +772,6 @@ export default function CreateAccountPage() {
                 options={HOSPITAL_OR_UNIVERSITY_OPTIONS}
                 required
               />
-              {showProfessionalLevel ? (
-                <ChoiceGroup
-                  label="Professional Level"
-                  options={PROFESSIONAL_LEVEL_OPTIONS}
-                  value={professionalLevel}
-                  onChange={(next) => {
-                    setProfessionalLevel(next);
-                    if (next === "gp") setSubspecialty("");
-                    if (next !== "consultant") setSubspecialty("");
-                  }}
-                />
-              ) : null}
               {showSpecialtyForPractice && professionalLevel ? (
                 <SearchableSelect
                   label="Specialty"
@@ -793,7 +781,7 @@ export default function CreateAccountPage() {
                   required={specialtyRequiredForPractice}
                 />
               ) : null}
-              {showOptionalSubspecialty ? (
+              {showConsultantSubspecialty ? (
                 <SearchableSelect
                   label="Subspecialty"
                   value={subspecialty}
