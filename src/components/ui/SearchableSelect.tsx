@@ -35,6 +35,11 @@ export function SearchableSelect({
   const [query, setQuery] = useState(value || "");
   const [otherMode, setOtherMode] = useState(false);
 
+  useEffect(() => {
+    setQuery(value || "");
+    if (!value) setOtherMode(false);
+  }, [value]);
+
   const allOptions = useMemo(() => {
     const unique = Array.from(new Set(options.filter(Boolean)));
     return allowOther ? [...unique, OTHER_OPTION] : unique;

@@ -226,13 +226,6 @@ export default function CreateAccountPage() {
       professionalLevel === "gp");
   const specialtyRequiredForPractice =
     professionalLevel === "specialist" || professionalLevel === "consultant";
-  const showFellowSubspecialty =
-    stage === "fellow" && Boolean(specialty) && subspecialtyOptions.length > 0;
-  const showConsultantSubspecialty =
-    stage === "medical-practice" &&
-    professionalLevel === "consultant" &&
-    Boolean(specialty) &&
-    subspecialtyOptions.length > 0;
 
   function onFieldChange(nextTitle: string) {
     const next =
@@ -583,12 +576,13 @@ export default function CreateAccountPage() {
               Your Journey
             </h2>
             <p className="mt-1 text-[0.8125rem] text-mm-text-muted">
-              Fields update based on your Healthcare Field and Journey Path.
+              Choose your pathway. Only relevant fields appear below.
             </p>
           </div>
 
-          <SelectField
-            id="healthcareField"
+          {/* Compact dropdowns only — never card grids */}
+          <SearchableSelect
+            id="healthcare-field"
             label="Healthcare Field"
             value={
               field
@@ -598,16 +592,21 @@ export default function CreateAccountPage() {
             }
             onChange={onFieldChange}
             options={HEALTHCARE_FIELD_OPTIONS.map((item) => item.title)}
+            placeholder="Select healthcare field"
+            allowOther={false}
             required
           />
 
           {field ? (
-            <SelectField
-              id="journeyPath"
+            <SearchableSelect
+              id="journey-path"
+              key={`journey-path-${field}`}
               label="Journey Path"
               value={journeyPathValue}
               onChange={onStageChange}
               options={journeyPathOptions}
+              placeholder="Select journey path"
+              allowOther={false}
               required
             />
           ) : null}
@@ -668,6 +667,7 @@ export default function CreateAccountPage() {
                 value={specialty}
                 onChange={onSpecialtyChange}
                 options={specialtyOptions}
+                allowOther={false}
                 required
               />
               <YearOutOfTotal
@@ -696,6 +696,7 @@ export default function CreateAccountPage() {
                 value={specialty}
                 onChange={onSpecialtyChange}
                 options={specialtyOptions}
+                allowOther={false}
                 required
               />
               <YearOutOfTotal
@@ -724,14 +725,17 @@ export default function CreateAccountPage() {
                 value={specialty}
                 onChange={onSpecialtyChange}
                 options={specialtyOptions}
+                allowOther={false}
                 required
               />
-              {showFellowSubspecialty ? (
+              {specialty && subspecialtyOptions.length > 0 ? (
                 <SearchableSelect
+                  key={`fellow-subspecialty-${specialty}`}
                   label="Subspecialty"
                   value={subspecialty}
                   onChange={setSubspecialty}
                   options={subspecialtyOptions}
+                  allowOther={false}
                   required={false}
                 />
               ) : null}
@@ -750,8 +754,8 @@ export default function CreateAccountPage() {
           {stage === "medical-practice" ? (
             <>
               {showProfessionalLevel ? (
-                <SelectField
-                  id="professionalLevel"
+                <SearchableSelect
+                  id="professional-level"
                   label="Professional Level"
                   value={
                     professionalLevel
@@ -762,6 +766,8 @@ export default function CreateAccountPage() {
                   }
                   onChange={onProfessionalLevelChange}
                   options={PROFESSIONAL_LEVEL_OPTIONS.map((item) => item.title)}
+                  placeholder="Select professional level"
+                  allowOther={false}
                   required
                 />
               ) : null}
@@ -778,15 +784,20 @@ export default function CreateAccountPage() {
                   value={specialty}
                   onChange={onSpecialtyChange}
                   options={specialtyOptions}
+                  allowOther={false}
                   required={specialtyRequiredForPractice}
                 />
               ) : null}
-              {showConsultantSubspecialty ? (
+              {professionalLevel === "consultant" &&
+              specialty &&
+              subspecialtyOptions.length > 0 ? (
                 <SearchableSelect
+                  key={`consultant-subspecialty-${specialty}`}
                   label="Subspecialty"
                   value={subspecialty}
                   onChange={setSubspecialty}
                   options={subspecialtyOptions}
+                  allowOther={false}
                   required={false}
                 />
               ) : null}
