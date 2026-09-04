@@ -13,6 +13,7 @@ import {
   buildDirectTrainingApplication,
   buildSeedApplications,
   buildTrainingApplication,
+  nextPaymentStatusAfterDecision,
   type DirectTrainingApplicationInput,
   type NewTrainingApplicationInput,
   type TrainingApplication,
@@ -76,7 +77,10 @@ function loadApps(applicantFallback: string): TrainingApplication[] {
     if (!Array.isArray(parsed)) return buildSeedApplications(applicantFallback);
     // Migrate empty store to seeds once
     if (parsed.length === 0) return buildSeedApplications(applicantFallback);
-    return parsed;
+    return parsed.map((item) => ({
+      ...item,
+      paymentStatus: item.paymentStatus ?? "paid",
+    }));
   } catch {
     return buildSeedApplications(applicantFallback);
   }
@@ -163,6 +167,10 @@ export function TrainingApplicationProvider({
           return {
             ...item,
             applicationStatus: status,
+            paymentStatus: nextPaymentStatusAfterDecision(
+              item.paymentStatus ?? "paid",
+              status,
+            ),
             hospitalReviewNote:
               hospitalReviewNote || item.hospitalReviewNote,
             remainingActions,

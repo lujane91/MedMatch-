@@ -25,6 +25,7 @@ import {
   type UserDocument,
 } from "@/data/training-documents";
 import {
+  MEDJOURNEY_APPLICATION_FEE_SAR,
   TRAINING_MONTHS,
   daysUntil,
   formatDateRange,
@@ -41,7 +42,7 @@ import { useTrainingApplications } from "@/lib/training-application-store";
 
 type MainArea = "home" | "find" | "detail" | "apply" | "mine";
 type MyTab = "applications" | "upcoming" | "completed";
-type ApplyStep = 1 | 2 | 3;
+type ApplyStep = 1 | 2 | 3 | 4 | 5;
 
 const FIND_PAGE_SIZE = 8;
 
@@ -225,6 +226,7 @@ export function TrainingWorkspace({
   >({});
   const [submitError, setSubmitError] = useState("");
   const [justSubmittedId, setJustSubmittedId] = useState<string | null>(null);
+  const [applyPaymentPaid, setApplyPaymentPaid] = useState(false);
 
   const isSummerElective = trainingType === "summer-elective";
 
@@ -362,6 +364,7 @@ export function TrainingWorkspace({
     }
     setDocSelections(initial);
     setApplyStep(1);
+    setApplyPaymentPaid(false);
     setSubmitError("");
     setArea("apply");
   }
@@ -390,6 +393,10 @@ export function TrainingWorkspace({
 
   function handleSubmit() {
     if (!selected) return;
+    if (isSummerElective && !applyPaymentPaid) {
+      setSubmitError("Please complete payment before submitting.");
+      return;
+    }
     const links = buildDocumentLinks(selected);
     const missing = links
       .filter((l) => l.required && l.status !== "Uploaded")
@@ -419,8 +426,15 @@ export function TrainingWorkspace({
       documents: links,
     });
     setJustSubmittedId(app.id);
+    setApplyPaymentPaid(false);
     setArea("mine");
     setMyTab("applications");
+  }
+
+  function completeMockApplicationPayment() {
+    setApplyPaymentPaid(true);
+    setSubmitError("");
+    setApplyStep(5);
   }
 
   if (compact) {
@@ -821,25 +835,35 @@ export function TrainingWorkspace({
       ) : null}
 
       {area === "apply" && selected ? (
-        <DashboardSection title="Apply">
-          <div className="mb-4 flex gap-2">
-            {[1, 2, 3].map((step) => (
-              <div
-                key={step}
-                className={cn(
-                  "h-1.5 flex-1 rounded-full",
-                  applyStep >= step ? "bg-mm-teal" : "bg-mm-gray-100",
-                )}
-              />
-            ))}
-          </div>
-          <p className="mb-4 text-[0.8125rem] font-semibold text-mm-text-muted">
-            {applyStep === 1
-              ? "Step 1 Training Details"
-              : applyStep === 2
-                ? "Step 2 Required Documents"
-                : "Step 3 Review and Submit"}
-          </p>
+        <DashboardSection
+          title={
+            applyStep === 4 || applyStep === 5
+              ? "Application Payment"
+              : "Apply"
+          }
+        >
+          {applyStep <= 3 ? (
+            <>
+              <div className="mb-4 flex gap-2">
+                {[1, 2, 3].map((step) => (
+                  <div
+                    key={step}
+                    className={cn(
+                      "h-1.5 flex-1 rounded-full",
+                      applyStep >= step ? "bg-mm-teal" : "bg-mm-gray-100",
+                    )}
+                  />
+                ))}
+              </div>
+              <p className="mb-4 text-[0.8125rem] font-semibold text-mm-text-muted">
+                {applyStep === 1
+                  ? "Step 1 Training Details"
+                  : applyStep === 2
+                    ? "Step 2 Required Documents"
+                    : "Step 3 Review Application"}
+              </p>
+            </>
+          ) : null}
 
           {applyStep === 1 ? (
             <div className="space-y-4">
@@ -1049,25 +1073,27 @@ export function TrainingWorkspace({
                 </ul>
               </div>
 
-              <div className="rounded-[var(--mm-radius-lg)] border border-mm-border px-4 py-3 text-[0.8125rem]">
-                <p>
-                  MedJourney Application Fee
-                  <span className="mt-0.5 block font-semibold text-mm-navy">
-                    {formatMedJourneyFee(selected.medjourneyApplicationFeeSar)}
-                  </span>
-                </p>
-                {!isSummerElective ? (
+              {!isSummerElective ? (
+                <div className="rounded-[var(--mm-radius-lg)] border border-mm-border px-4 py-3 text-[0.8125rem]">
+                  <p>
+                    MedJourney Application Fee
+                    <span className="mt-0.5 block font-semibold text-mm-navy">
+                      {formatMedJourneyFee(
+                        selected.medjourneyApplicationFeeSar,
+                      )}
+                    </span>
+                  </p>
                   <p className="mt-3">
                     Hospital or Training Fee
                     <span className="mt-0.5 block font-semibold text-mm-navy">
                       {formatHospitalFee(selected.hospitalFee)}
                     </span>
                   </p>
-                ) : null}
-                <p className="mt-2 text-mm-text-muted">
-                  Prototype only. Real payment is not processed yet.
-                </p>
-              </div>
+                  <p className="mt-2 text-mm-text-muted">
+                    Prototype only. Real payment is not processed yet.
+                  </p>
+                </div>
+              ) : null}
 
               {submitError ? (
                 <p className="text-[0.8125rem] font-medium text-mm-error-700">
@@ -1083,14 +1109,108 @@ export function TrainingWorkspace({
                 >
                   Back
                 </button>
+                {isSummerElective ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubmitError("");
+                      setApplyStep(4);
+                    }}
+                    className="min-h-11 flex-1 rounded-[var(--mm-radius-lg)] bg-mm-teal text-[0.875rem] font-semibold text-white"
+                  >
+                    Continue to Payment
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    className="min-h-11 flex-1 rounded-[var(--mm-radius-lg)] bg-mm-teal text-[0.875rem] font-semibold text-white"
+                  >
+                    Submit Application
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {applyStep === 4 && isSummerElective ? (
+            <div className="space-y-5">
+              <div className="rounded-[var(--mm-radius-xl)] border border-mm-border px-5 py-6 text-center">
+                <p className="text-[0.8125rem] font-semibold uppercase tracking-[0.12em] text-mm-text-muted">
+                  Application Payment
+                </p>
+                <p className="mt-3 font-[family-name:var(--mm-font-display)] text-[2.5rem] leading-none tracking-[-0.03em] text-mm-navy">
+                  {formatMedJourneyFee(MEDJOURNEY_APPLICATION_FEE_SAR)}
+                </p>
+                <p className="mt-3 text-[0.875rem] text-mm-text-secondary">
+                  MedJourney application payment for this Summer Elective
+                  application.
+                </p>
+              </div>
+
+              <div className="rounded-[var(--mm-radius-lg)] border border-mm-border bg-mm-gray-50 px-4 py-4 text-[0.875rem] leading-relaxed text-mm-navy">
+                <p className="font-semibold">Refund policy</p>
+                <p className="mt-2 text-mm-text-secondary">
+                  If your application is not accepted, the SAR 100 payment will
+                  be refunded.
+                </p>
+                <p className="mt-2 text-mm-text-secondary">
+                  If you withdraw your application, the SAR 100 payment is
+                  nonrefundable unless there are extenuating circumstances.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={handleSubmit}
+                  onClick={() => setApplyStep(3)}
+                  className="min-h-11 flex-1 rounded-[var(--mm-radius-lg)] border border-mm-border text-[0.875rem] font-semibold text-mm-navy"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={completeMockApplicationPayment}
                   className="min-h-11 flex-1 rounded-[var(--mm-radius-lg)] bg-mm-teal text-[0.875rem] font-semibold text-white"
                 >
-                  Submit Application
+                  Pay SAR 100
                 </button>
               </div>
+            </div>
+          ) : null}
+
+          {applyStep === 5 && isSummerElective ? (
+            <div className="space-y-5">
+              <div className="rounded-[var(--mm-radius-xl)] border border-mm-border px-5 py-8 text-center">
+                <p className="text-[1.125rem] font-semibold text-mm-navy">
+                  Payment Successful
+                </p>
+                <p className="mt-2 text-[0.9375rem] text-mm-text-secondary">
+                  SAR 100 paid
+                </p>
+                <p className="mt-4 text-[0.8125rem] text-mm-text-muted">
+                  Payment is complete. Submit your application to send it for
+                  review.
+                </p>
+              </div>
+
+              {submitError ? (
+                <p className="text-[0.8125rem] font-medium text-mm-error-700">
+                  {submitError}
+                </p>
+              ) : null}
+
+              <button
+                type="button"
+                disabled={!applyPaymentPaid}
+                onClick={handleSubmit}
+                className={cn(
+                  "inline-flex min-h-11 w-full items-center justify-center rounded-[var(--mm-radius-lg)] bg-mm-teal text-[0.875rem] font-semibold text-white",
+                  !applyPaymentPaid && "cursor-not-allowed opacity-50",
+                )}
+              >
+                Submit Application
+              </button>
             </div>
           ) : null}
         </DashboardSection>

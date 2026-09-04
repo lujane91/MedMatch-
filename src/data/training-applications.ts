@@ -36,6 +36,18 @@ export type TrainingApplicationStatus =
 
 export type TrainingFeeStatus = "Not Required" | "Pending" | "Paid (Demo)";
 
+/**
+ * Separate from application status.
+ * unpaid → paid after mock application payment.
+ * Declined / not accepted → refundPending (then refunded after processing).
+ * Voluntary withdrawal stays paid (nonrefundable by default).
+ */
+export type TrainingPaymentStatus =
+  | "unpaid"
+  | "paid"
+  | "refundPending"
+  | "refunded";
+
 export type ApplicationDocumentLink = {
   requirementId: string;
   documentType: TrainingDocumentType;
@@ -69,6 +81,8 @@ export type TrainingApplication = {
   medjourneyApplicationFeeSar: number;
   hospitalFee: TrainingFee;
   feeStatus: TrainingFeeStatus;
+  /** Application fee payment state (independent of submission). */
+  paymentStatus: TrainingPaymentStatus;
   remainingActions: string[];
   evaluationReceived: boolean;
   certificateAvailable: boolean;
@@ -79,6 +93,38 @@ export type TrainingApplication = {
   createdAt: string;
   updatedAt: string;
 };
+
+/**
+ * Prototype refund rules for the SAR 100 application payment.
+ * Waitlisted stays pending (no refund). Declined → refund eligible.
+ * Voluntary withdrawal is nonrefundable by default.
+ */
+export function nextPaymentStatusAfterDecision(
+  current: TrainingPaymentStatus,
+  applicationStatus: TrainingApplicationStatus,
+  options?: { voluntarilyWithdrawn?: boolean },
+): TrainingPaymentStatus {
+  if (options?.voluntarilyWithdrawn) {
+    // Nonrefundable by default; extenuating circumstances are manual later.
+    return current === "refundPending" || current === "refunded"
+      ? current
+      : current === "paid"
+        ? "paid"
+        : current;
+  }
+  if (applicationStatus === "Declined" && current === "paid") {
+    return "refundPending";
+  }
+  if (
+    applicationStatus === "Waitlisted" ||
+    applicationStatus === "Accepted" ||
+    applicationStatus === "Under Review" ||
+    applicationStatus === "Submitted"
+  ) {
+    return current;
+  }
+  return current;
+}
 
 export function trainingTypeForStage(
   stage: TrainingStage | null,
@@ -204,6 +250,7 @@ export function buildTrainingApplication(
         ? { kind: "none" }
         : opportunity.hospitalFee,
     feeStatus: "Paid (Demo)",
+    paymentStatus: "paid",
     remainingActions: [],
     evaluationReceived: false,
     certificateAvailable: false,
@@ -242,6 +289,7 @@ export function buildDirectTrainingApplication(
     medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
     hospitalFee: { kind: "none" },
     feeStatus: "Paid (Demo)",
+    paymentStatus: "paid",
     remainingActions: [],
     evaluationReceived: false,
     certificateAvailable: false,
@@ -312,6 +360,7 @@ export function buildSeedApplications(
       medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
       hospitalFee: cardio.hospitalFee,
       feeStatus: "Paid (Demo)",
+      paymentStatus: "paid",
       remainingActions: [
         "Upload Health Clearance",
         "Sign Training Agreement",
@@ -358,6 +407,7 @@ export function buildSeedApplications(
       medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
       hospitalFee: peds.hospitalFee,
       feeStatus: "Paid (Demo)",
+      paymentStatus: "paid",
       remainingActions: [],
       evaluationReceived: true,
       certificateAvailable: true,
@@ -401,6 +451,7 @@ export function buildSeedApplications(
       medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
       hospitalFee: internEm.hospitalFee,
       feeStatus: "Paid (Demo)",
+      paymentStatus: "paid",
       remainingActions: [],
       evaluationReceived: false,
       certificateAvailable: false,
@@ -444,6 +495,7 @@ export function buildSeedApplications(
       medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
       hospitalFee: trauma.hospitalFee,
       feeStatus: "Paid (Demo)",
+      paymentStatus: "paid",
       remainingActions: [],
       evaluationReceived: false,
       certificateAvailable: false,
