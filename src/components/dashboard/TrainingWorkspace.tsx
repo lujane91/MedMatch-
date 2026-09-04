@@ -689,7 +689,11 @@ export function TrainingWorkspace({
                 allowOther={false}
               />
               <SearchableSelect
-                label="Hospital"
+                label={
+                  isSummerElective
+                    ? "Hospital"
+                    : "Hospital or Training Institution"
+                }
                 value={filterHospital}
                 onChange={setFilterHospital}
                 options={SAUDI_HOSPITAL_NAMES}
