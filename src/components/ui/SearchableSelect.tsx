@@ -9,13 +9,16 @@ const OTHER_OPTION = "Other";
 
 type SearchableSelectProps = {
   id?: string;
-  label: string;
+  label?: string;
   value: string;
   onChange: (value: string) => void;
   options: readonly string[];
   placeholder?: string;
   required?: boolean;
   allowOther?: boolean;
+  /** When false, behaves like a standard dropdown (no free typing). Default true. */
+  searchable?: boolean;
+  className?: string;
 };
 
 export function SearchableSelect({
@@ -27,10 +30,13 @@ export function SearchableSelect({
   placeholder = "Search or select",
   required = false,
   allowOther = true,
+  searchable = true,
+  className,
 }: SearchableSelectProps) {
   const generatedId = useId();
   const fieldId = id ?? generatedId;
   const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value || "");
   const [otherMode, setOtherMode] = useState(false);
@@ -48,21 +54,30 @@ export function SearchableSelect({
   const isKnownOption = Boolean(value) && allOptions.includes(value);
   const isOther = otherMode || (Boolean(value) && !isKnownOption);
 
+  function closeAndSync() {
+    setOpen(false);
+    setQuery(value || "");
+  }
+
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
       if (!rootRef.current?.contains(event.target as Node)) {
         setOpen(false);
+        setQuery(value || "");
       }
     }
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
-  }, []);
+  }, [value]);
 
   const filtered = useMemo(() => {
+    if (!searchable) return allOptions;
     const q = query.trim().toLowerCase();
-    if (!q || query === OTHER_OPTION) return allOptions;
+    // Opening with a selected value must show the full list until the user
+    // starts a new search (query differs from the current selection).
+    if (!q || query === value || query === OTHER_OPTION) return allOptions;
     return allOptions.filter((option) => option.toLowerCase().includes(q));
-  }, [allOptions, query]);
+  }, [allOptions, query, searchable, value]);
 
   function selectOption(option: string) {
     if (option === OTHER_OPTION) {
@@ -78,29 +93,47 @@ export function SearchableSelect({
     setOpen(false);
   }
 
+  function openList() {
+    setOpen(true);
+    if (!isOther) setQuery(value || "");
+  }
+
   const displayQuery = isOther && query !== OTHER_OPTION ? OTHER_OPTION : query;
 
   return (
-    <div ref={rootRef} className="w-full">
-      <label
-        htmlFor={fieldId}
-        className="mb-1.5 block text-[0.8125rem] font-medium text-mm-navy"
-      >
-        {label}
-      </label>
+    <div ref={rootRef} className={cn("w-full", className)}>
+      {label ? (
+        <label
+          htmlFor={fieldId}
+          className="mb-1.5 block text-[0.8125rem] font-medium text-mm-navy"
+        >
+          {label}
+        </label>
+      ) : null}
       <div className="relative">
         <input
+          ref={inputRef}
           id={fieldId}
           type="text"
           autoComplete="off"
+          readOnly={!searchable}
           required={required && !isOther}
           value={isOther ? OTHER_OPTION : displayQuery}
           placeholder={placeholder}
-          onFocus={() => {
-            setOpen(true);
-            if (!isOther) setQuery(value || "");
+          onFocus={(e) => {
+            openList();
+            if (searchable && !isOther) {
+              e.currentTarget.select();
+            }
+          }}
+          onClick={() => {
+            openList();
+            if (searchable && !isOther && inputRef.current) {
+              inputRef.current.select();
+            }
           }}
           onChange={(e) => {
+            if (!searchable) return;
             const next = e.target.value;
             setOtherMode(false);
             setQuery(next);
@@ -111,12 +144,20 @@ export function SearchableSelect({
             "w-full rounded-[var(--mm-radius-lg)] border border-mm-border bg-mm-white py-2.5 pl-3.5 pr-10 text-[0.9375rem] text-mm-navy outline-none transition-[border-color,box-shadow] duration-[var(--mm-duration)]",
             "placeholder:text-mm-gray-400",
             "focus:border-mm-teal focus:shadow-[var(--mm-shadow-focus)]",
+            !searchable && "cursor-pointer",
           )}
         />
         <button
           type="button"
-          aria-label={`Toggle ${label} options`}
-          onClick={() => setOpen((prev) => !prev)}
+          aria-label={label ? `Toggle ${label} options` : "Toggle options"}
+          onClick={() => {
+            if (open) {
+              closeAndSync();
+            } else {
+              openList();
+              inputRef.current?.focus();
+            }
+          }}
           className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-mm-text-muted"
         >
           <ChevronsUpDown size={16} strokeWidth={1.75} />
@@ -159,12 +200,16 @@ export function SearchableSelect({
       {isOther ? (
         <div className="mt-2">
           <Input
-            label={`Enter ${label.toLowerCase()}`}
+            label={label ? `Enter ${label.toLowerCase()}` : "Enter value"}
             name={`${fieldId}-other`}
             value={value}
             required={required}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={`Type your ${label.toLowerCase()}`}
+            placeholder={
+              label
+                ? `Type your ${label.toLowerCase()}`
+                : "Type your value"
+            }
           />
         </div>
       ) : null}

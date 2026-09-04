@@ -18,7 +18,6 @@ import { SAUDI_HOSPITAL_NAMES } from "@/data/saudi-hospitals";
 import { getSpecialtiesForField } from "@/data/saudi-specialties";
 import { getSubspecialtiesForSpecialty } from "@/data/saudi-subspecialties";
 import { SAUDI_UNIVERSITY_NAMES } from "@/data/saudi-universities";
-import { cn } from "@/lib/cn";
 import { useInternStore } from "@/lib/intern-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 
@@ -56,57 +55,6 @@ const HOSPITAL_OR_UNIVERSITY_OPTIONS = Array.from(
   new Set([...SAUDI_HOSPITAL_NAMES, ...SAUDI_UNIVERSITY_NAMES]),
 ).sort((a, b) => a.localeCompare(b));
 
-function SelectField({
-  id,
-  label,
-  value,
-  onChange,
-  options,
-  required,
-  className,
-}: {
-  id: string;
-  label?: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: readonly string[];
-  required?: boolean;
-  className?: string;
-}) {
-  return (
-    <div className={cn("w-full", className)}>
-      {label ? (
-        <label
-          htmlFor={id}
-          className="mb-1.5 block text-[0.8125rem] font-medium text-mm-navy"
-        >
-          {label}
-        </label>
-      ) : null}
-      <select
-        id={id}
-        name={id}
-        value={value}
-        required={required}
-        onChange={(e) => onChange(e.target.value)}
-        className={cn(
-          "w-full rounded-[var(--mm-radius-lg)] border border-mm-border bg-mm-white px-3.5 py-2.5 text-[0.9375rem] text-mm-navy outline-none transition-[border-color,box-shadow] duration-[var(--mm-duration)]",
-          "focus:border-mm-teal focus:shadow-[var(--mm-shadow-focus)]",
-        )}
-      >
-        <option value="" disabled>
-          Select
-        </option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
 function YearOutOfTotal({
   label,
   currentId,
@@ -128,22 +76,28 @@ function YearOutOfTotal({
     <div className="w-full">
       <p className="mb-1.5 text-[0.8125rem] font-medium text-mm-navy">{label}</p>
       <div className="flex items-center gap-2">
-        <SelectField
+        <SearchableSelect
           id={currentId}
           value={currentValue}
           onChange={onCurrentChange}
           options={yearOptions}
+          placeholder="Select"
+          allowOther={false}
+          searchable={false}
           required
           className="flex-1"
         />
         <span className="shrink-0 text-[0.875rem] text-mm-text-muted">
           out of
         </span>
-        <SelectField
+        <SearchableSelect
           id={totalId}
           value={totalValue}
           onChange={onTotalChange}
           options={yearOptions}
+          placeholder="Select"
+          allowOther={false}
+          searchable={false}
           required
           className="flex-1"
         />
@@ -608,6 +562,7 @@ export default function CreateAccountPage() {
             options={HEALTHCARE_FIELD_OPTIONS.map((item) => item.title)}
             placeholder="Select healthcare field"
             allowOther={false}
+            searchable={false}
             required
           />
 
@@ -621,6 +576,7 @@ export default function CreateAccountPage() {
               options={journeyPathOptions}
               placeholder="Select journey path"
               allowOther={false}
+              searchable={false}
               required
             />
           ) : null}
@@ -676,12 +632,14 @@ export default function CreateAccountPage() {
                 options={HOSPITAL_OR_UNIVERSITY_OPTIONS}
                 required
               />
-              <SelectField
+              <SearchableSelect
                 id="resident-specialty"
                 label="Specialty"
                 value={specialty}
                 onChange={onSpecialtyChange}
                 options={specialtyOptions}
+                placeholder="Select specialty"
+                allowOther={false}
                 required
               />
               <YearOutOfTotal
@@ -705,15 +663,17 @@ export default function CreateAccountPage() {
                 options={HOSPITAL_OR_UNIVERSITY_OPTIONS}
                 required
               />
-              <SelectField
+              <SearchableSelect
                 id="fellow-specialty"
                 label="Specialty"
                 value={specialty}
                 onChange={onSpecialtyChange}
                 options={specialtyOptions}
+                placeholder="Select specialty"
+                allowOther={false}
                 required
               />
-              <SelectField
+              <SearchableSelect
                 id="fellow-subspecialty"
                 label="Subspecialty"
                 value={
@@ -721,6 +681,8 @@ export default function CreateAccountPage() {
                 }
                 onChange={setSubspecialty}
                 options={subspecialtyOptions}
+                placeholder="Select subspecialty"
+                allowOther={false}
                 required={subspecialtyOptions.length > 0}
               />
               <YearOutOfTotal
@@ -738,7 +700,7 @@ export default function CreateAccountPage() {
           {stage === "medical-practice" ? (
             <>
               {showProfessionalLevel ? (
-                <SelectField
+                <SearchableSelect
                   id="professional-level"
                   label="Professional Level"
                   value={
@@ -750,6 +712,9 @@ export default function CreateAccountPage() {
                   }
                   onChange={onProfessionalLevelChange}
                   options={PROFESSIONAL_LEVEL_OPTIONS.map((item) => item.title)}
+                  placeholder="Select professional level"
+                  allowOther={false}
+                  searchable={false}
                   required
                 />
               ) : null}
@@ -763,18 +728,20 @@ export default function CreateAccountPage() {
               {showSpecialtyForPractice &&
               specialtyRequiredForPractice &&
               (!showProfessionalLevel || Boolean(professionalLevel)) ? (
-                <SelectField
+                <SearchableSelect
                   id="practice-specialty"
                   label="Specialty"
                   value={specialty}
                   onChange={onSpecialtyChange}
                   options={specialtyOptions}
+                  placeholder="Select specialty"
+                  allowOther={false}
                   required
                 />
               ) : null}
               {consultantSelected ? (
                 <>
-                  <SelectField
+                  <SearchableSelect
                     id="consultant-subspecialty"
                     label="Subspecialty"
                     value={
@@ -784,6 +751,8 @@ export default function CreateAccountPage() {
                     }
                     onChange={setSubspecialty}
                     options={subspecialtyOptions}
+                    placeholder="Select subspecialty"
+                    allowOther={false}
                     required={false}
                   />
                   <p className="text-[0.75rem] text-mm-text-muted">
