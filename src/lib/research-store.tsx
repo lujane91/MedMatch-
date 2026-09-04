@@ -200,6 +200,12 @@ export function ResearchProvider({ children }: { children: ReactNode }) {
         requests: prev.requests.map((r) =>
           r.id === requestId ? { ...r, status } : r,
         ),
+        projects:
+          status === "Accepted" && project && project.status === "Proposed"
+            ? prev.projects.map((p) =>
+                p.id === project.id ? { ...p, status: "Active" as const } : p,
+              )
+            : prev.projects,
       }));
 
       if (request && project) {
@@ -207,8 +213,8 @@ export function ResearchProvider({ children }: { children: ReactNode }) {
           category: "research",
           title:
             status === "Accepted"
-              ? "Your request was accepted"
-              : "Your request was declined",
+              ? "Your request to join was accepted"
+              : "Your request to join was declined",
           message:
             status === "Accepted"
               ? `You were accepted to join ${project.title}.`
@@ -252,7 +258,7 @@ export function ResearchProvider({ children }: { children: ReactNode }) {
 
       addNotification({
         category: "research",
-        title: "You received a research invitation",
+        title: "You were invited to a research project",
         message: `${project.creatorName} invited you to join ${project.title}.`,
         relatedRecordId: next.id,
         actionHref: `/research/${project.id}`,

@@ -152,6 +152,22 @@ export function ResearchDetailClient({ researchId }: { researchId: string }) {
           </p>
 
           <dl className="mt-5 grid gap-3 text-[0.8125rem] sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <dt className="font-semibold uppercase tracking-[0.08em] text-mm-text-muted">
+                Hospital or Institution Name
+              </dt>
+              <dd className="mt-1 text-mm-navy">
+                {project.institution?.trim() ||
+                  project.creatorInstitution?.trim() ||
+                  "Not specified"}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold uppercase tracking-[0.08em] text-mm-text-muted">
+                City
+              </dt>
+              <dd className="mt-1 text-mm-navy">{project.location}</dd>
+            </div>
             <div>
               <dt className="font-semibold uppercase tracking-[0.08em] text-mm-text-muted">
                 Healthcare Field
@@ -176,12 +192,6 @@ export function ResearchDetailClient({ researchId }: { researchId: string }) {
             </div>
             <div>
               <dt className="font-semibold uppercase tracking-[0.08em] text-mm-text-muted">
-                Location
-              </dt>
-              <dd className="mt-1 text-mm-navy">{project.location}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold uppercase tracking-[0.08em] text-mm-text-muted">
                 Participation
               </dt>
               <dd className="mt-1 text-mm-navy">{project.participationType}</dd>
@@ -200,18 +210,20 @@ export function ResearchDetailClient({ researchId }: { researchId: string }) {
                 {project.whoCanJoin.join(", ")}
               </dd>
             </div>
-            {project.institution ? (
+            {project.preferredStages.length ? (
               <div className="sm:col-span-2">
                 <dt className="font-semibold uppercase tracking-[0.08em] text-mm-text-muted">
-                  Institution
+                  Preferred Stage or Experience
                 </dt>
-                <dd className="mt-1 text-mm-navy">{project.institution}</dd>
+                <dd className="mt-1 text-mm-navy">
+                  {project.preferredStages.join(", ")}
+                </dd>
               </div>
             ) : null}
             {project.optionalRequirements ? (
               <div className="sm:col-span-2">
                 <dt className="font-semibold uppercase tracking-[0.08em] text-mm-text-muted">
-                  Optional Requirements
+                  Requirements
                 </dt>
                 <dd className="mt-1 text-mm-navy">
                   {project.optionalRequirements}
@@ -229,22 +241,22 @@ export function ResearchDetailClient({ researchId }: { researchId: string }) {
             {requestSent || myRequest ? (
               <p className="mt-3 text-[0.9375rem] font-medium text-mm-teal">
                 {myRequest?.status === "Accepted"
-                  ? "Request accepted"
+                  ? "Accepted"
                   : myRequest?.status === "Declined"
-                    ? "Request declined"
+                    ? "Declined"
                     : "Request Sent"}
               </p>
             ) : (
               <div className="mt-4 space-y-3">
                 <div>
                   <label className="mb-1.5 block text-[0.8125rem] font-medium text-mm-navy">
-                    Optional message
+                    Why are you interested in joining?
                   </label>
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     rows={3}
-                    placeholder="I'm interested in participating in this research and have previous experience with data collection."
+                    placeholder="Share a short note about your interest or experience (optional)."
                     className="w-full rounded-[var(--mm-radius-lg)] border border-mm-border px-3 py-2.5 text-[0.9375rem] outline-none focus:border-mm-teal"
                   />
                 </div>
@@ -366,6 +378,28 @@ export function ResearchDetailClient({ researchId }: { researchId: string }) {
                   ))}
                 </ul>
               )}
+
+              {projectRequests.filter((r) => r.status === "Accepted").length >
+              0 ? (
+                <div className="mt-5">
+                  <h3 className="text-[0.875rem] font-semibold text-mm-navy">
+                    Accepted participants
+                  </h3>
+                  <ul className="mt-2 space-y-2">
+                    {projectRequests
+                      .filter((r) => r.status === "Accepted")
+                      .map((req) => (
+                        <li
+                          key={req.id}
+                          className="rounded-[var(--mm-radius-lg)] bg-mm-gray-50 px-3 py-2 text-[0.8125rem] text-mm-text-secondary"
+                        >
+                          {req.requesterName}
+                          {req.specialty ? ` · ${req.specialty}` : ""}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              ) : null}
             </section>
 
             <section className="rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-surface p-5 shadow-mm-sm">
