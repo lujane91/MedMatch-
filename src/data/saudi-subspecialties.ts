@@ -185,5 +185,16 @@ export function getSubspecialtiesForSpecialty(
   specialty: string | null | undefined,
 ): readonly string[] {
   if (!specialty) return [];
-  return SUBSPECIALTIES_BY_SPECIALTY[specialty] ?? [];
+  const exact = SUBSPECIALTIES_BY_SPECIALTY[specialty];
+  if (exact?.length) return exact;
+  const trimmed = specialty.trim();
+  if (trimmed !== specialty) {
+    const byTrim = SUBSPECIALTIES_BY_SPECIALTY[trimmed];
+    if (byTrim?.length) return byTrim;
+  }
+  const lower = trimmed.toLowerCase();
+  const match = Object.entries(SUBSPECIALTIES_BY_SPECIALTY).find(
+    ([key]) => key.toLowerCase() === lower,
+  );
+  return match?.[1] ?? [];
 }

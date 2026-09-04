@@ -160,6 +160,21 @@ function yearProgressLabel(stage: TrainingStage | null) {
   return "Current Year";
 }
 
+/** Onboarding Journey Path labels (Student, not Medical Student). */
+function onboardingJourneyLabel(stage: TrainingStage) {
+  if (stage === "medical-student") return "Student";
+  return trainingStageLabel(stage);
+}
+
+function stageFromOnboardingLabel(label: string): TrainingStage | null {
+  if (label === "Student") return "medical-student";
+  if (label === "Intern") return "intern";
+  if (label === "Resident") return "resident";
+  if (label === "Fellow") return "fellow";
+  if (label === "Medical Practice") return "medical-practice";
+  return null;
+}
+
 export default function CreateAccountPage() {
   const router = useRouter();
   const { profile, setAccountBasics, updateProfile } = useInternStore();
@@ -201,18 +216,18 @@ export default function CreateAccountPage() {
   const [error, setError] = useState("");
 
   const journeyPathOptions = useMemo(() => {
-    return journeyPathsForField(field).map((id) => trainingStageLabel(id));
+    return journeyPathsForField(field).map((id) => onboardingJourneyLabel(id));
   }, [field]);
 
-  const journeyPathValue = stage ? trainingStageLabel(stage) : "";
+  const journeyPathValue = stage ? onboardingJourneyLabel(stage) : "";
 
   const specialtyOptions = useMemo(
-    () => getSpecialtiesForField(field),
+    () => [...getSpecialtiesForField(field)],
     [field],
   );
 
   const subspecialtyOptions = useMemo(
-    () => getSubspecialtiesForSpecialty(specialty),
+    () => [...getSubspecialtiesForSpecialty(specialty)],
     [specialty],
   );
 
@@ -222,11 +237,11 @@ export default function CreateAccountPage() {
     !showProfessionalLevel ||
     professionalLevel === "specialist" ||
     professionalLevel === "consultant";
-  const showPracticeSubspecialty =
+  /** Consultant Subspecialty is optional but the field must stay visible when options exist. */
+  const consultantSelected =
     stage === "medical-practice" &&
-    Boolean(specialty) &&
-    subspecialtyOptions.length > 0 &&
-    (!showProfessionalLevel || professionalLevel === "consultant");
+    showProfessionalLevel &&
+    professionalLevel === "consultant";
 
   function onFieldChange(nextTitle: string) {
     const next =
@@ -248,10 +263,7 @@ export default function CreateAccountPage() {
   }
 
   function onStageChange(nextLabel: string) {
-    const next =
-      (journeyPathsForField(field).find(
-        (id) => trainingStageLabel(id) === nextLabel,
-      ) as TrainingStage | undefined) ?? null;
+    const next = stageFromOnboardingLabel(nextLabel);
     if (!next) return;
     setStage(next);
     setProfessionalLevel(null);
@@ -347,6 +359,10 @@ export default function CreateAccountPage() {
         setError("Please complete all required journey fields.");
         return;
       }
+      if (subspecialtyOptions.length > 0 && !subspecialty.trim()) {
+        setError("Please select a Subspecialty.");
+        return;
+      }
     }
     if (stage === "medical-practice") {
       if (!trainingInstitution.trim()) {
@@ -380,13 +396,13 @@ export default function CreateAccountPage() {
       stage === "medical-student" || stage === "intern"
         ? ""
         : stage === "medical-practice" && professionalLevel === "gp"
-          ? specialty.trim()
+          ? ""
           : specialty.trim();
 
     const clearedSubspecialty =
       stage === "fellow"
         ? subspecialty.trim()
-        : stage === "medical-practice" && showPracticeSubspecialty
+        : consultantSelected
           ? subspecialty.trim()
           : "";
 
@@ -660,12 +676,12 @@ export default function CreateAccountPage() {
                 options={HOSPITAL_OR_UNIVERSITY_OPTIONS}
                 required
               />
-              <SearchableSelect
+              <SelectField
+                id="resident-specialty"
                 label="Specialty"
                 value={specialty}
                 onChange={onSpecialtyChange}
                 options={specialtyOptions}
-                allowOther={false}
                 required
               />
               <YearOutOfTotal
@@ -689,25 +705,24 @@ export default function CreateAccountPage() {
                 options={HOSPITAL_OR_UNIVERSITY_OPTIONS}
                 required
               />
-              <SearchableSelect
+              <SelectField
+                id="fellow-specialty"
                 label="Specialty"
                 value={specialty}
                 onChange={onSpecialtyChange}
                 options={specialtyOptions}
-                allowOther={false}
                 required
               />
-              {specialty && subspecialtyOptions.length > 0 ? (
-                <SearchableSelect
-                  key={`fellow-subspecialty-${specialty}`}
-                  label="Subspecialty"
-                  value={subspecialty}
-                  onChange={setSubspecialty}
-                  options={subspecialtyOptions}
-                  allowOther={false}
-                  required={false}
-                />
-              ) : null}
+              <SelectField
+                id="fellow-subspecialty"
+                label="Subspecialty"
+                value={
+                  subspecialtyOptions.includes(subspecialty) ? subspecialty : ""
+                }
+                onChange={setSubspecialty}
+                options={subspecialtyOptions}
+                required={subspecialtyOptions.length > 0}
+              />
               <YearOutOfTotal
                 label={yearProgressLabel(stage)}
                 currentId="currentYear"
@@ -723,7 +738,7 @@ export default function CreateAccountPage() {
           {stage === "medical-practice" ? (
             <>
               {showProfessionalLevel ? (
-                <SearchableSelect
+                <SelectField
                   id="professional-level"
                   label="Professional Level"
                   value={
@@ -735,8 +750,6 @@ export default function CreateAccountPage() {
                   }
                   onChange={onProfessionalLevelChange}
                   options={PROFESSIONAL_LEVEL_OPTIONS.map((item) => item.title)}
-                  placeholder="Select professional level"
-                  allowOther={false}
                   required
                 />
               ) : null}
@@ -748,29 +761,35 @@ export default function CreateAccountPage() {
                 required
               />
               {showSpecialtyForPractice &&
-              (!showProfessionalLevel || professionalLevel) ? (
-                <SearchableSelect
+              specialtyRequiredForPractice &&
+              (!showProfessionalLevel || Boolean(professionalLevel)) ? (
+                <SelectField
+                  id="practice-specialty"
                   label="Specialty"
                   value={specialty}
                   onChange={onSpecialtyChange}
                   options={specialtyOptions}
-                  allowOther={false}
-                  required={
-                    specialtyRequiredForPractice &&
-                    professionalLevel !== "gp"
-                  }
+                  required
                 />
               ) : null}
-              {showPracticeSubspecialty ? (
-                <SearchableSelect
-                  key={`practice-subspecialty-${specialty}`}
-                  label="Subspecialty"
-                  value={subspecialty}
-                  onChange={setSubspecialty}
-                  options={subspecialtyOptions}
-                  allowOther={false}
-                  required={false}
-                />
+              {consultantSelected ? (
+                <>
+                  <SelectField
+                    id="consultant-subspecialty"
+                    label="Subspecialty"
+                    value={
+                      subspecialtyOptions.includes(subspecialty)
+                        ? subspecialty
+                        : ""
+                    }
+                    onChange={setSubspecialty}
+                    options={subspecialtyOptions}
+                    required={false}
+                  />
+                  <p className="text-[0.75rem] text-mm-text-muted">
+                    Optional. Leave blank if you do not have a subspecialty.
+                  </p>
+                </>
               ) : null}
             </>
           ) : null}
