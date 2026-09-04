@@ -109,6 +109,7 @@ function CollapsibleSection({
   return (
     <section
       id={id}
+      key={`${id}-${defaultOpen ? "open" : "closed"}`}
       className="rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-surface shadow-mm-sm"
     >
       <div className="flex items-start justify-between gap-3 px-4 py-4 sm:px-5">
