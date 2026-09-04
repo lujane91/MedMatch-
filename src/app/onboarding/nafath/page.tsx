@@ -4,19 +4,38 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { AuthShell } from "@/components/AuthShell";
+import { Input } from "@/components/ui";
 import { continueToSubscriptionPayment } from "@/lib/continue-to-subscription";
 import { useInternStore } from "@/lib/intern-store";
 import { usePlatformSubscriptionPlanStore } from "@/lib/platform-subscription-plan-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
+import { cn } from "@/lib/cn";
 
 type NafathStep = "start" | "waiting" | "verified";
 
+/** Saudi National ID / Iqama are 10-digit numbers. */
+function isValidNationalIdOrIqama(value: string) {
+  return /^\d{10}$/.test(value.trim());
+}
+
 export default function NafathVerificationPage() {
   const router = useRouter();
-  const { profile, completeOnboarding, updateProfile } = useInternStore();
+  const { profile, hydrated, completeOnboarding, updateProfile } =
+    useInternStore();
   const { markUnpaidProgress } = useSubscriptionStore();
   const { plan } = usePlatformSubscriptionPlanStore();
   const [step, setStep] = useState<NafathStep>("start");
+  const [nationalId, setNationalId] = useState("");
+  const [prefilled, setPrefilled] = useState(false);
+
+  useEffect(() => {
+    if (!hydrated || prefilled) return;
+    const saved = profile.nationalId?.replace(/\D/g, "") || "";
+    if (saved) setNationalId(saved.slice(0, 10));
+    setPrefilled(true);
+  }, [hydrated, prefilled, profile.nationalId]);
+
+  const canVerify = isValidNationalIdOrIqama(nationalId);
 
   useEffect(() => {
     if (step !== "verified") return;
@@ -48,6 +67,13 @@ export default function NafathVerificationPage() {
         ? "Open the Nafath app and approve the request using the number below."
         : "Identity verified";
 
+  function startMockNafath() {
+    if (!canVerify) return;
+    const trimmed = nationalId.trim();
+    updateProfile({ nationalId: trimmed });
+    setStep("waiting");
+  }
+
   return (
     <AuthShell
       title="Verify your identity"
@@ -57,13 +83,35 @@ export default function NafathVerificationPage() {
       footer={null}
     >
       {step === "start" ? (
-        <button
-          type="button"
-          onClick={() => setStep("waiting")}
-          className="inline-flex min-h-11 w-full items-center justify-center rounded-[var(--mm-radius-lg)] bg-mm-teal px-[1.125rem] text-[0.875rem] font-semibold text-white shadow-mm-teal transition-[transform,background] duration-[var(--mm-duration)] hover:-translate-y-px hover:bg-mm-teal-700"
-        >
-          Verify with Nafath
-        </button>
+        <div className="space-y-4">
+          <Input
+            label="National ID or Iqama Number"
+            name="nationalId"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="off"
+            placeholder="Enter your National ID or Iqama number"
+            value={nationalId}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+              setNationalId(digits);
+            }}
+            required
+          />
+          <button
+            type="button"
+            disabled={!canVerify}
+            onClick={startMockNafath}
+            className={cn(
+              "inline-flex min-h-11 w-full items-center justify-center rounded-[var(--mm-radius-lg)] bg-mm-teal px-[1.125rem] text-[0.875rem] font-semibold text-white shadow-mm-teal transition-[transform,background,opacity] duration-[var(--mm-duration)]",
+              canVerify
+                ? "hover:-translate-y-px hover:bg-mm-teal-700"
+                : "cursor-not-allowed opacity-50",
+            )}
+          >
+            Verify with Nafath
+          </button>
+        </div>
       ) : null}
 
       {step === "waiting" ? (
