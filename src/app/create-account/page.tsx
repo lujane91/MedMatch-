@@ -5,7 +5,6 @@ import { useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/AuthShell";
 import { Input, SearchableSelect } from "@/components/ui";
-import { getAdvancedTrainingProgramsForField } from "@/data/advanced-training-programs";
 import {
   composeFullName,
   journeyPathsForField,
@@ -156,7 +155,6 @@ function YearOutOfTotal({
 function yearProgressLabel(stage: TrainingStage | null) {
   if (stage === "medical-student") return "Current Academic Year";
   if (stage === "intern") return "Current Internship Year";
-  if (stage === "advanced-training") return "Current Training Year";
   if (stage === "resident") return "Current Residency Year";
   if (stage === "fellow") return "Current Fellowship Year";
   return "Current Year";
@@ -183,9 +181,12 @@ export default function CreateAccountPage() {
   const [photoDataUrl, setPhotoDataUrl] = useState(profile.photoDataUrl || "");
 
   const [field, setField] = useState<HealthcareField | null>(profile.field);
-  const [stage, setStage] = useState<TrainingStage | null>(
-    profile.trainingStage,
-  );
+  const [stage, setStage] = useState<TrainingStage | null>(() => {
+    const initial = profile.trainingStage;
+    // Advanced Training is removed from active onboarding.
+    if (initial === "advanced-training") return null;
+    return initial;
+  });
   const [professionalLevel, setProfessionalLevel] =
     useState<ProfessionalLevel | null>(profile.professionalLevel);
 
@@ -205,12 +206,10 @@ export default function CreateAccountPage() {
 
   const journeyPathValue = stage ? trainingStageLabel(stage) : "";
 
-  const specialtyOptions = useMemo(() => {
-    if (stage === "advanced-training") {
-      return getAdvancedTrainingProgramsForField(field);
-    }
-    return getSpecialtiesForField(field);
-  }, [field, stage]);
+  const specialtyOptions = useMemo(
+    () => getSpecialtiesForField(field),
+    [field],
+  );
 
   const subspecialtyOptions = useMemo(
     () => getSubspecialtiesForSpecialty(specialty),
@@ -218,14 +217,16 @@ export default function CreateAccountPage() {
   );
 
   const showProfessionalLevel = needsProfessionalLevel(stage, field);
-  const showSpecialtyForPractice =
-    stage === "medical-practice" &&
-    showProfessionalLevel &&
-    (professionalLevel === "specialist" ||
-      professionalLevel === "consultant" ||
-      professionalLevel === "gp");
+  const showSpecialtyForPractice = stage === "medical-practice";
   const specialtyRequiredForPractice =
-    professionalLevel === "specialist" || professionalLevel === "consultant";
+    !showProfessionalLevel ||
+    professionalLevel === "specialist" ||
+    professionalLevel === "consultant";
+  const showPracticeSubspecialty =
+    stage === "medical-practice" &&
+    Boolean(specialty) &&
+    subspecialtyOptions.length > 0 &&
+    (!showProfessionalLevel || professionalLevel === "consultant");
 
   function onFieldChange(nextTitle: string) {
     const next =
@@ -325,7 +326,7 @@ export default function CreateAccountPage() {
         return;
       }
     }
-    if (stage === "advanced-training" || stage === "resident") {
+    if (stage === "resident") {
       if (
         !trainingInstitution.trim() ||
         !specialty.trim() ||
@@ -366,14 +367,12 @@ export default function CreateAccountPage() {
     const isUniversityStage =
       stage === "medical-student" || stage === "intern";
     const isHospitalStage =
-      stage === "advanced-training" ||
       stage === "resident" ||
       stage === "fellow" ||
       stage === "medical-practice";
     const needsYear =
       stage === "medical-student" ||
       stage === "intern" ||
-      stage === "advanced-training" ||
       stage === "resident" ||
       stage === "fellow";
 
@@ -387,7 +386,7 @@ export default function CreateAccountPage() {
     const clearedSubspecialty =
       stage === "fellow"
         ? subspecialty.trim()
-        : showProfessionalLevel && professionalLevel === "consultant"
+        : stage === "medical-practice" && showPracticeSubspecialty
           ? subspecialty.trim()
           : "";
 
@@ -418,8 +417,7 @@ export default function CreateAccountPage() {
       fellowshipYear: stage === "fellow" ? currentYear : "",
       specialty: clearedSpecialty,
       subspecialty: clearedSubspecialty,
-      trainingProgramKind:
-        stage === "advanced-training" ? "advanced-training" : null,
+      trainingProgramKind: null,
       photoUploaded: Boolean(photoDataUrl),
       photoDataUrl,
       identityVerified: false,
@@ -653,35 +651,6 @@ export default function CreateAccountPage() {
             </>
           ) : null}
 
-          {stage === "advanced-training" ? (
-            <>
-              <SearchableSelect
-                label="Hospital or University Name"
-                value={trainingInstitution}
-                onChange={setTrainingInstitution}
-                options={HOSPITAL_OR_UNIVERSITY_OPTIONS}
-                required
-              />
-              <SearchableSelect
-                label="Specialty or Training Program"
-                value={specialty}
-                onChange={onSpecialtyChange}
-                options={specialtyOptions}
-                allowOther={false}
-                required
-              />
-              <YearOutOfTotal
-                label={yearProgressLabel(stage)}
-                currentId="currentYear"
-                totalId="totalYears"
-                currentValue={currentYear}
-                totalValue={totalYears}
-                onCurrentChange={setCurrentYear}
-                onTotalChange={setTotalYears}
-              />
-            </>
-          ) : null}
-
           {stage === "resident" ? (
             <>
               <SearchableSelect
@@ -778,21 +747,23 @@ export default function CreateAccountPage() {
                 options={HOSPITAL_OR_UNIVERSITY_OPTIONS}
                 required
               />
-              {showSpecialtyForPractice && professionalLevel ? (
+              {showSpecialtyForPractice &&
+              (!showProfessionalLevel || professionalLevel) ? (
                 <SearchableSelect
                   label="Specialty"
                   value={specialty}
                   onChange={onSpecialtyChange}
                   options={specialtyOptions}
                   allowOther={false}
-                  required={specialtyRequiredForPractice}
+                  required={
+                    specialtyRequiredForPractice &&
+                    professionalLevel !== "gp"
+                  }
                 />
               ) : null}
-              {professionalLevel === "consultant" &&
-              specialty &&
-              subspecialtyOptions.length > 0 ? (
+              {showPracticeSubspecialty ? (
                 <SearchableSelect
-                  key={`consultant-subspecialty-${specialty}`}
+                  key={`practice-subspecialty-${specialty}`}
                   label="Subspecialty"
                   value={subspecialty}
                   onChange={setSubspecialty}

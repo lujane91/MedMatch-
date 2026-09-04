@@ -443,34 +443,18 @@ export function composeFullName(
 }
 
 /**
- * Journey Path options depend on Healthcare Field.
- * Advanced Training stays for Nursing, Pharmacy, and Allied Health.
+ * Journey Path options for Complete Your Account.
+ * Advanced Training is not offered in active onboarding.
  */
 export function journeyPathsForField(
   field: HealthcareField | null,
 ): TrainingStage[] {
   if (!field) return [];
-  if (field === "medicine" || field === "dentistry") {
-    return [
-      "medical-student",
-      "intern",
-      "resident",
-      "fellow",
-      "medical-practice",
-    ];
-  }
-  if (field === "nursing" || field === "pharmacy" || field === "allied") {
-    return [
-      "medical-student",
-      "intern",
-      "advanced-training",
-      "medical-practice",
-    ];
-  }
   return [
     "medical-student",
     "intern",
-    "advanced-training",
+    "resident",
+    "fellow",
     "medical-practice",
   ];
 }
