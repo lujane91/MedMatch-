@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/AuthShell";
 import { Input, SearchableSelect } from "@/components/ui";
 import { getAdvancedTrainingProgramsForField } from "@/data/advanced-training-programs";
 import {
-  isAdvancedTrainingField,
+  composeFullName,
+  journeyPathsForField,
   needsProfessionalLevel,
+  trainingStageLabel,
+  type HealthcareField,
+  type ProfessionalLevel,
   type TrainingStage,
 } from "@/data/intern";
 import { SAUDI_HOSPITAL_NAMES } from "@/data/saudi-hospitals";
@@ -31,6 +35,27 @@ const yearOptions = [
   "9",
   "10",
 ] as const;
+
+const HEALTHCARE_FIELD_OPTIONS: { id: HealthcareField; title: string }[] = [
+  { id: "medicine", title: "Medicine" },
+  { id: "dentistry", title: "Dentistry" },
+  { id: "pharmacy", title: "Pharmacy" },
+  { id: "nursing", title: "Nursing" },
+  { id: "allied", title: "Allied Health" },
+];
+
+const PROFESSIONAL_LEVEL_OPTIONS: {
+  id: ProfessionalLevel;
+  title: string;
+}[] = [
+  { id: "gp", title: "General Practitioner" },
+  { id: "specialist", title: "Specialist" },
+  { id: "consultant", title: "Consultant" },
+];
+
+const HOSPITAL_OR_UNIVERSITY_OPTIONS = Array.from(
+  new Set([...SAUDI_HOSPITAL_NAMES, ...SAUDI_UNIVERSITY_NAMES]),
+).sort((a, b) => a.localeCompare(b));
 
 function SelectField({
   id,
@@ -128,114 +153,189 @@ function YearOutOfTotal({
   );
 }
 
-function needsYearProgress(stage: TrainingStage | null) {
+function ChoiceGroup<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { id: T; title: string; subtitle?: string }[];
+  value: T | null;
+  onChange: (next: T) => void;
+}) {
   return (
-    stage === "medical-student" ||
-    stage === "intern" ||
-    stage === "advanced-training" ||
-    stage === "resident" ||
-    stage === "fellow"
-  );
-}
-
-function usesHospitalAndProgram(stage: TrainingStage | null) {
-  return (
-    stage === "advanced-training" ||
-    stage === "resident" ||
-    stage === "fellow"
+    <div>
+      <p className="mb-2 text-[0.8125rem] font-medium text-mm-navy">{label}</p>
+      <div className="grid gap-2">
+        {options.map((option) => {
+          const selected = value === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => onChange(option.id)}
+              className={cn(
+                "rounded-[var(--mm-radius-lg)] border px-4 py-3 text-left transition-colors",
+                selected
+                  ? "border-mm-teal bg-mm-teal-50"
+                  : "border-mm-border bg-mm-white",
+              )}
+            >
+              <p className="text-[0.9375rem] font-semibold text-mm-navy">
+                {option.title}
+              </p>
+              {option.subtitle ? (
+                <p className="mt-0.5 text-[0.75rem] text-mm-text-muted">
+                  {option.subtitle}
+                </p>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
 function yearProgressLabel(stage: TrainingStage | null) {
-  if (stage === "medical-student") return "Current academic year";
-  if (stage === "intern") return "Current internship year";
+  if (stage === "medical-student") return "Current Academic Year";
+  if (stage === "intern") return "Current Internship Year";
   if (stage === "advanced-training") return "Current Training Year";
-  if (stage === "resident") return "Current residency year";
-  if (stage === "fellow") return "Current fellowship year";
-  return "Current year";
+  if (stage === "resident") return "Current Residency Year";
+  if (stage === "fellow") return "Current Fellowship Year";
+  return "Current Year";
 }
 
 export default function CreateAccountPage() {
   const router = useRouter();
-  const { hydrated, profile, setAccountBasics, updateProfile } =
-    useInternStore();
+  const { profile, setAccountBasics, updateProfile } = useInternStore();
   const { resetForNewAccount } = useSubscriptionStore();
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
-  const [fullName, setFullName] = useState(profile.fullName || "Amina Hassan");
-  const [personalEmail, setPersonalEmail] = useState(
-    profile.email || "amina.hassan@medmatch.edu",
-  );
+  const [firstName, setFirstName] = useState(profile.firstName || "");
+  const [middleName, setMiddleName] = useState(profile.middleName || "");
+  const [lastName, setLastName] = useState(profile.lastName || "");
+  const [dateOfBirth, setDateOfBirth] = useState(profile.dateOfBirth || "");
+  const [nationalId, setNationalId] = useState(profile.nationalId || "");
+  const [personalEmail, setPersonalEmail] = useState(profile.email || "");
   const [institutionEmail, setInstitutionEmail] = useState(
-    profile.institutionEmail || "amina.hassan@university.edu.sa",
+    profile.institutionEmail || "",
   );
-  const [mobile, setMobile] = useState(profile.mobile || "+966 50 000 0000");
-  const [password, setPassword] = useState("password123");
-  const [confirm, setConfirm] = useState("password123");
+  const [mobile, setMobile] = useState(profile.mobile || "");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [photoDataUrl, setPhotoDataUrl] = useState(profile.photoDataUrl || "");
+
+  const [field, setField] = useState<HealthcareField | null>(profile.field);
+  const [stage, setStage] = useState<TrainingStage | null>(
+    profile.trainingStage,
+  );
+  const [professionalLevel, setProfessionalLevel] =
+    useState<ProfessionalLevel | null>(profile.professionalLevel);
+
   const [university, setUniversity] = useState(profile.university || "");
-  const [currentYear, setCurrentYear] = useState(profile.currentYear || "");
-  const [totalYears, setTotalYears] = useState(profile.totalYears || "");
   const [trainingInstitution, setTrainingInstitution] = useState(
     profile.trainingInstitution || "",
   );
+  const [currentYear, setCurrentYear] = useState(profile.currentYear || "");
+  const [totalYears, setTotalYears] = useState(profile.totalYears || "");
   const [specialty, setSpecialty] = useState(profile.specialty || "");
   const [subspecialty, setSubspecialty] = useState(profile.subspecialty || "");
   const [error, setError] = useState("");
 
-  const stage = profile.trainingStage;
+  const journeyPathOptions = useMemo(() => {
+    return journeyPathsForField(field).map((id) => ({
+      id,
+      title: trainingStageLabel(id),
+      subtitle:
+        id === "advanced-training"
+          ? "For Nursing, Pharmacy and Allied Health"
+          : undefined,
+    }));
+  }, [field]);
+
   const specialtyOptions = useMemo(() => {
     if (stage === "advanced-training") {
-      return getAdvancedTrainingProgramsForField(profile.field);
+      return getAdvancedTrainingProgramsForField(field);
     }
-    return getSpecialtiesForField(profile.field);
-  }, [profile.field, stage]);
+    return getSpecialtiesForField(field);
+  }, [field, stage]);
+
   const subspecialtyOptions = useMemo(
     () => getSubspecialtiesForSpecialty(specialty),
     [specialty],
   );
+
+  const showProfessionalLevel = needsProfessionalLevel(stage, field);
+  const showSpecialtyForPractice =
+    stage === "medical-practice" &&
+    (professionalLevel === "specialist" ||
+      professionalLevel === "consultant" ||
+      professionalLevel === "gp");
+  const specialtyRequiredForPractice =
+    professionalLevel === "specialist" || professionalLevel === "consultant";
   const showOptionalSubspecialty =
-    needsProfessionalLevel(stage, profile.field) &&
-    profile.professionalLevel === "consultant";
+    (stage === "fellow" && subspecialtyOptions.length > 0) ||
+    (showProfessionalLevel &&
+      professionalLevel === "consultant" &&
+      subspecialtyOptions.length > 0);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    if (!profile.trainingStage) {
-      router.replace("/onboarding/applying-for");
-      return;
+  function onFieldChange(next: HealthcareField) {
+    setField(next);
+    setSpecialty("");
+    setSubspecialty("");
+    setProfessionalLevel(null);
+    const allowed = journeyPathsForField(next);
+    if (stage && !allowed.includes(stage)) {
+      setStage(null);
+      setUniversity("");
+      setTrainingInstitution("");
+      setCurrentYear("");
+      setTotalYears("");
     }
-    if (!profile.field) {
-      router.replace("/onboarding/profession");
-      return;
-    }
-    if (
-      profile.trainingStage === "advanced-training" &&
-      !isAdvancedTrainingField(profile.field)
-    ) {
-      router.replace("/onboarding/profession");
-      return;
-    }
-    if (
-      needsProfessionalLevel(profile.trainingStage, profile.field) &&
-      !profile.professionalLevel
-    ) {
-      router.replace("/onboarding/professional-level");
-    }
-  }, [
-    hydrated,
-    profile.field,
-    profile.professionalLevel,
-    profile.trainingStage,
-    router,
-  ]);
+  }
 
-  const onSubmit = (e: React.FormEvent) => {
+  function onStageChange(next: TrainingStage) {
+    setStage(next);
+    setProfessionalLevel(null);
+    setSpecialty("");
+    setSubspecialty("");
+    setUniversity("");
+    setTrainingInstitution("");
+    setCurrentYear("");
+    setTotalYears("");
+  }
+
+  function onSpecialtyChange(next: string) {
+    setSpecialty(next);
+    setSubspecialty("");
+  }
+
+  function onPhotoSelected(file: File | null) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      setPhotoDataUrl(result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function onSubmit(e: FormEvent) {
     e.preventDefault();
+    setError("");
+
     if (
-      !fullName.trim() ||
+      !firstName.trim() ||
+      !lastName.trim() ||
+      !dateOfBirth ||
+      !nationalId.trim() ||
       !personalEmail.trim() ||
       !institutionEmail.trim() ||
       !mobile.trim()
     ) {
-      setError("Please complete all required fields.");
+      setError("Please complete all required personal details.");
       return;
     }
     if (password.length < 6) {
@@ -246,38 +346,25 @@ export default function CreateAccountPage() {
       setError("Passwords do not match.");
       return;
     }
+    if (!field || !stage) {
+      setError("Please select your Healthcare Field and Journey Path.");
+      return;
+    }
 
-    if (stage === "medical-student") {
+    if (stage === "medical-student" || stage === "intern") {
       if (!university.trim() || !currentYear || !totalYears) {
-        setError("Please complete all required fields.");
+        setError("Please complete all required journey fields.");
         return;
       }
     }
-    if (stage === "intern") {
-      if (!university.trim() || !currentYear || !totalYears) {
-        setError("Please complete all required fields.");
-        return;
-      }
-    }
-    if (stage === "advanced-training") {
+    if (stage === "advanced-training" || stage === "resident") {
       if (
         !trainingInstitution.trim() ||
         !specialty.trim() ||
         !currentYear ||
         !totalYears
       ) {
-        setError("Please complete all required fields.");
-        return;
-      }
-    }
-    if (stage === "resident") {
-      if (
-        !trainingInstitution.trim() ||
-        !specialty.trim() ||
-        !currentYear ||
-        !totalYears
-      ) {
-        setError("Please complete all required fields.");
+        setError("Please complete all required journey fields.");
         return;
       }
     }
@@ -288,89 +375,97 @@ export default function CreateAccountPage() {
         !currentYear ||
         !totalYears
       ) {
-        setError("Please complete all required fields.");
+        setError("Please complete all required journey fields.");
         return;
       }
     }
-    if (stage === "medical-practice" && !specialty.trim()) {
-      setError("Please complete all required fields.");
-      return;
+    if (stage === "medical-practice") {
+      if (!trainingInstitution.trim()) {
+        setError("Please complete all required journey fields.");
+        return;
+      }
+      if (showProfessionalLevel && !professionalLevel) {
+        setError("Please select your Professional Level.");
+        return;
+      }
+      if (specialtyRequiredForPractice && !specialty.trim()) {
+        setError("Please complete all required journey fields.");
+        return;
+      }
     }
+
+    const fullName = composeFullName(firstName, middleName, lastName);
+    const isUniversityStage =
+      stage === "medical-student" || stage === "intern";
+    const isHospitalStage =
+      stage === "advanced-training" ||
+      stage === "resident" ||
+      stage === "fellow" ||
+      stage === "medical-practice";
+    const needsYear =
+      stage === "medical-student" ||
+      stage === "intern" ||
+      stage === "advanced-training" ||
+      stage === "resident" ||
+      stage === "fellow";
+
+    const clearedSpecialty =
+      stage === "medical-student" || stage === "intern"
+        ? ""
+        : stage === "medical-practice" && professionalLevel === "gp"
+          ? specialty.trim()
+          : specialty.trim();
+
+    const clearedSubspecialty =
+      stage === "fellow"
+        ? subspecialty.trim()
+        : showProfessionalLevel && professionalLevel === "consultant"
+          ? subspecialty.trim()
+          : "";
 
     resetForNewAccount();
     setAccountBasics({
-      fullName: fullName.trim(),
+      fullName,
       email: personalEmail.trim(),
       mobile: mobile.trim(),
       password,
     });
     updateProfile({
+      firstName: firstName.trim(),
+      middleName: middleName.trim(),
+      lastName: lastName.trim(),
+      fullName,
+      dateOfBirth,
+      nationalId: nationalId.trim(),
       institutionEmail: institutionEmail.trim(),
-      university:
-        stage === "medical-student" || stage === "intern"
-          ? university.trim()
-          : "",
-      currentYear: needsYearProgress(stage) ? currentYear : "",
-      totalYears: needsYearProgress(stage) ? totalYears : "",
+      field,
+      trainingStage: stage,
+      professionalLevel: showProfessionalLevel ? professionalLevel : null,
+      university: isUniversityStage ? university.trim() : "",
+      trainingInstitution: isHospitalStage ? trainingInstitution.trim() : "",
+      currentYear: needsYear ? currentYear : "",
+      totalYears: needsYear ? totalYears : "",
       internshipYear: "",
       residencyYear: stage === "resident" ? currentYear : "",
       fellowshipYear: stage === "fellow" ? currentYear : "",
-      trainingInstitution: usesHospitalAndProgram(stage)
-        ? trainingInstitution.trim()
-        : "",
-      specialty:
-        usesHospitalAndProgram(stage) || stage === "medical-practice"
-          ? specialty.trim()
-          : "",
-      subspecialty:
-        stage === "fellow" || showOptionalSubspecialty
-          ? subspecialty.trim()
-          : "",
+      specialty: clearedSpecialty,
+      subspecialty: clearedSubspecialty,
       trainingProgramKind:
         stage === "advanced-training" ? "advanced-training" : null,
+      photoUploaded: Boolean(photoDataUrl),
+      photoDataUrl,
       identityVerified: false,
+      onboardingComplete: false,
     });
     router.push("/onboarding/nafath");
-  };
-
-  if (
-    !hydrated ||
-    !stage ||
-    !profile.field ||
-    (stage === "advanced-training" &&
-      !isAdvancedTrainingField(profile.field))
-  ) {
-    return (
-      <AuthShell
-        title="Complete your account"
-        subtitle="Enter your details to continue."
-        panelTitle="Complete your account"
-        panelBody="Enter your details to continue your MedJourney."
-        footer={
-          <>
-            Already have an account?{" "}
-            <Link
-              href="/sign-in"
-              className="font-semibold text-mm-teal transition-colors hover:text-mm-teal-700"
-            >
-              Sign in
-            </Link>
-          </>
-        }
-      >
-        <p className="text-[0.875rem] text-mm-text-muted">Loading…</p>
-      </AuthShell>
-    );
   }
-
-  const yearLabel = yearProgressLabel(stage);
 
   return (
     <AuthShell
-      title="Complete your account"
+      title="Complete Your Account"
       subtitle="Enter your details to continue."
-      panelTitle="Complete your account"
-      panelBody="Enter your details to continue your MedJourney."
+      panelTitle="Complete Your Account"
+      panelBody="Enter your personal details and journey information to continue."
       footer={
         <>
           Already have an account?{" "}
@@ -383,52 +478,167 @@ export default function CreateAccountPage() {
         </>
       }
     >
-      <form className="space-y-4" onSubmit={onSubmit}>
-        <Input
-          label="Full name"
-          name="fullName"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          required
-        />
-        <Input
-          label="Mobile number"
-          name="mobile"
-          value={mobile}
-          onChange={(e) => setMobile(e.target.value)}
-          required
-        />
-        <Input
-          label="Personal email"
-          type="email"
-          name="personalEmail"
-          value={personalEmail}
-          onChange={(e) => setPersonalEmail(e.target.value)}
-          hint="Your permanent MedJourney account email."
-          required
-        />
-        <Input
-          label="Institutional email"
-          type="email"
-          name="institutionEmail"
-          value={institutionEmail}
-          onChange={(e) => setInstitutionEmail(e.target.value)}
-          hint="Your current university, hospital, training or work email."
-          required
-        />
+      <form className="space-y-8" onSubmit={onSubmit}>
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-[1rem] font-semibold text-mm-navy">
+              Personal Details
+            </h2>
+            <p className="mt-1 text-[0.8125rem] text-mm-text-muted">
+              Your MedJourney identity information.
+            </p>
+          </div>
 
-        <div className="space-y-4 border-t border-mm-border pt-4">
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-mm-border bg-mm-gray-50 text-[0.875rem] font-semibold text-mm-navy">
+              {photoDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photoDataUrl}
+                  alt="Profile preview"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                "Photo"
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                className="min-h-10 rounded-[var(--mm-radius-lg)] border border-mm-border px-3 text-[0.8125rem] font-semibold text-mm-navy"
+              >
+                {photoDataUrl ? "Change Photo" : "Upload Photo"}
+              </button>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) =>
+                  onPhotoSelected(e.target.files?.[0] ?? null)
+                }
+              />
+            </div>
+          </div>
+
+          <Input
+            label="First Name"
+            name="firstName"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            required
+          />
+          <Input
+            label="Middle Name"
+            name="middleName"
+            value={middleName}
+            onChange={(e) => setMiddleName(e.target.value)}
+          />
+          <Input
+            label="Last Name"
+            name="lastName"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            required
+          />
+          <Input
+            label="Date of Birth"
+            type="date"
+            name="dateOfBirth"
+            value={dateOfBirth}
+            onChange={(e) => setDateOfBirth(e.target.value)}
+            required
+          />
+          <Input
+            label="National ID or Iqama Number"
+            name="nationalId"
+            inputMode="numeric"
+            value={nationalId}
+            onChange={(e) => setNationalId(e.target.value)}
+            required
+          />
+          <Input
+            label="Mobile Number"
+            name="mobile"
+            type="tel"
+            value={mobile}
+            onChange={(e) => setMobile(e.target.value)}
+            required
+          />
+          <Input
+            label="Personal Email"
+            type="email"
+            name="personalEmail"
+            value={personalEmail}
+            onChange={(e) => setPersonalEmail(e.target.value)}
+            hint="Your permanent MedJourney account email."
+            required
+          />
+          <Input
+            label="Institutional Email"
+            type="email"
+            name="institutionEmail"
+            value={institutionEmail}
+            onChange={(e) => setInstitutionEmail(e.target.value)}
+            hint="Your current university, hospital or work email."
+            required
+          />
+          <Input
+            label="Password"
+            type="password"
+            name="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <Input
+            label="Confirm Password"
+            type="password"
+            name="confirmPassword"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            required
+          />
+        </section>
+
+        <section className="space-y-4 border-t border-mm-border pt-6">
+          <div>
+            <h2 className="text-[1rem] font-semibold text-mm-navy">
+              Your Journey
+            </h2>
+            <p className="mt-1 text-[0.8125rem] text-mm-text-muted">
+              Fields update based on your Healthcare Field and Journey Path.
+            </p>
+          </div>
+
+          <ChoiceGroup
+            label="Healthcare Field"
+            options={HEALTHCARE_FIELD_OPTIONS}
+            value={field}
+            onChange={onFieldChange}
+          />
+
+          {field ? (
+            <ChoiceGroup
+              label="Journey Path"
+              options={journeyPathOptions}
+              value={stage}
+              onChange={onStageChange}
+            />
+          ) : null}
+
           {stage === "medical-student" ? (
             <>
               <SearchableSelect
-                label="University name"
+                label="University Name"
                 value={university}
                 onChange={setUniversity}
                 options={SAUDI_UNIVERSITY_NAMES}
                 required
               />
               <YearOutOfTotal
-                label={yearLabel}
+                label={yearProgressLabel(stage)}
                 currentId="currentYear"
                 totalId="totalYears"
                 currentValue={currentYear}
@@ -442,14 +652,14 @@ export default function CreateAccountPage() {
           {stage === "intern" ? (
             <>
               <SearchableSelect
-                label="University name"
+                label="University Name"
                 value={university}
                 onChange={setUniversity}
                 options={SAUDI_UNIVERSITY_NAMES}
                 required
               />
               <YearOutOfTotal
-                label={yearLabel}
+                label={yearProgressLabel(stage)}
                 currentId="currentYear"
                 totalId="totalYears"
                 currentValue={currentYear}
@@ -463,21 +673,21 @@ export default function CreateAccountPage() {
           {stage === "advanced-training" ? (
             <>
               <SearchableSelect
-                label="Hospital or Training Institution"
+                label="Hospital or University Name"
                 value={trainingInstitution}
                 onChange={setTrainingInstitution}
-                options={SAUDI_HOSPITAL_NAMES}
+                options={HOSPITAL_OR_UNIVERSITY_OPTIONS}
                 required
               />
               <SearchableSelect
                 label="Specialty or Training Program"
                 value={specialty}
-                onChange={setSpecialty}
+                onChange={onSpecialtyChange}
                 options={specialtyOptions}
                 required
               />
               <YearOutOfTotal
-                label={yearLabel}
+                label={yearProgressLabel(stage)}
                 currentId="currentYear"
                 totalId="totalYears"
                 currentValue={currentYear}
@@ -491,24 +701,21 @@ export default function CreateAccountPage() {
           {stage === "resident" ? (
             <>
               <SearchableSelect
-                label="Hospital or training institution"
+                label="Hospital or University Name"
                 value={trainingInstitution}
                 onChange={setTrainingInstitution}
-                options={SAUDI_HOSPITAL_NAMES}
+                options={HOSPITAL_OR_UNIVERSITY_OPTIONS}
                 required
               />
               <SearchableSelect
                 label="Specialty"
                 value={specialty}
-                onChange={(next) => {
-                  setSpecialty(next);
-                  setSubspecialty("");
-                }}
+                onChange={onSpecialtyChange}
                 options={specialtyOptions}
                 required
               />
               <YearOutOfTotal
-                label={yearLabel}
+                label={yearProgressLabel(stage)}
                 currentId="currentYear"
                 totalId="totalYears"
                 currentValue={currentYear}
@@ -522,31 +729,30 @@ export default function CreateAccountPage() {
           {stage === "fellow" ? (
             <>
               <SearchableSelect
-                label="Hospital or training institution"
+                label="Hospital or University Name"
                 value={trainingInstitution}
                 onChange={setTrainingInstitution}
-                options={SAUDI_HOSPITAL_NAMES}
+                options={HOSPITAL_OR_UNIVERSITY_OPTIONS}
                 required
               />
               <SearchableSelect
                 label="Specialty"
                 value={specialty}
-                onChange={(next) => {
-                  setSpecialty(next);
-                  setSubspecialty("");
-                }}
+                onChange={onSpecialtyChange}
                 options={specialtyOptions}
                 required
               />
-              <SearchableSelect
-                label="Subspecialty"
-                value={subspecialty}
-                onChange={setSubspecialty}
-                options={subspecialtyOptions}
-                required={false}
-              />
+              {subspecialtyOptions.length > 0 ? (
+                <SearchableSelect
+                  label="Subspecialty"
+                  value={subspecialty}
+                  onChange={setSubspecialty}
+                  options={subspecialtyOptions}
+                  required={false}
+                />
+              ) : null}
               <YearOutOfTotal
-                label={yearLabel}
+                label={yearProgressLabel(stage)}
                 currentId="currentYear"
                 totalId="totalYears"
                 currentValue={currentYear}
@@ -560,15 +766,33 @@ export default function CreateAccountPage() {
           {stage === "medical-practice" ? (
             <>
               <SearchableSelect
-                label="Current specialty"
-                value={specialty}
-                onChange={(next) => {
-                  setSpecialty(next);
-                  setSubspecialty("");
-                }}
-                options={specialtyOptions}
+                label="Hospital or University Name"
+                value={trainingInstitution}
+                onChange={setTrainingInstitution}
+                options={HOSPITAL_OR_UNIVERSITY_OPTIONS}
                 required
               />
+              {showProfessionalLevel ? (
+                <ChoiceGroup
+                  label="Professional Level"
+                  options={PROFESSIONAL_LEVEL_OPTIONS}
+                  value={professionalLevel}
+                  onChange={(next) => {
+                    setProfessionalLevel(next);
+                    if (next === "gp") setSubspecialty("");
+                    if (next !== "consultant") setSubspecialty("");
+                  }}
+                />
+              ) : null}
+              {showSpecialtyForPractice && professionalLevel ? (
+                <SearchableSelect
+                  label="Specialty"
+                  value={specialty}
+                  onChange={onSpecialtyChange}
+                  options={specialtyOptions}
+                  required={specialtyRequiredForPractice}
+                />
+              ) : null}
               {showOptionalSubspecialty ? (
                 <SearchableSelect
                   label="Subspecialty"
@@ -580,34 +804,19 @@ export default function CreateAccountPage() {
               ) : null}
             </>
           ) : null}
-        </div>
+        </section>
 
-        <Input
-          label="Password"
-          type="password"
-          name="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <Input
-          label="Confirm password"
-          type="password"
-          name="confirmPassword"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          required
-        />
         {error ? (
           <p className="text-[0.8125rem] font-medium text-mm-error-700">
             {error}
           </p>
         ) : null}
+
         <button
           type="submit"
           className="inline-flex min-h-11 w-full items-center justify-center rounded-[var(--mm-radius-lg)] bg-mm-teal px-[1.125rem] text-[0.875rem] font-semibold text-white shadow-mm-teal transition-[transform,background] duration-[var(--mm-duration)] hover:-translate-y-px hover:bg-mm-teal-700"
         >
-          Continue
+          Complete Account
         </button>
       </form>
     </AuthShell>

@@ -70,7 +70,7 @@ export function JourneyDashboard({
             Complete onboarding to open your MedJourney dashboard.
           </p>
           <Link
-            href="/onboarding/applying-for"
+            href="/create-account"
             className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--mm-radius-lg)] bg-mm-teal px-5 text-[0.875rem] font-semibold text-white shadow-mm-teal"
           >
             Continue setup

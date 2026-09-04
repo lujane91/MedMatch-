@@ -83,6 +83,12 @@ export type Rotation = {
 
 export type InternProfile = {
   fullName: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  dateOfBirth: string;
+  /** National ID or Iqama — collected for future real Nafath verification. */
+  nationalId: string;
   email: string;
   mobile: string;
   trainingStage: TrainingStage | null;
@@ -105,6 +111,8 @@ export type InternProfile = {
   internshipStart: string;
   internshipEnd: string;
   photoUploaded: boolean;
+  /** Prototype photo preview (data URL). Future: cloud storage. */
+  photoDataUrl: string;
   cvUploaded: boolean;
   identityVerified: boolean;
   onboardingComplete: boolean;
@@ -412,7 +420,7 @@ export function professionalLevelLabel(
 ) {
   switch (level) {
     case "gp":
-      return "GP";
+      return "General Practitioner";
     case "specialist":
       return "Specialist";
     case "consultant":
@@ -420,6 +428,51 @@ export function professionalLevelLabel(
     default:
       return "";
   }
+}
+
+/** Compose display name from structured name parts. */
+export function composeFullName(
+  firstName: string,
+  middleName: string,
+  lastName: string,
+) {
+  return [firstName, middleName, lastName]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+/**
+ * Journey Path options depend on Healthcare Field.
+ * Advanced Training stays for Nursing, Pharmacy, and Allied Health.
+ */
+export function journeyPathsForField(
+  field: HealthcareField | null,
+): TrainingStage[] {
+  if (!field) return [];
+  if (field === "medicine" || field === "dentistry") {
+    return [
+      "medical-student",
+      "intern",
+      "resident",
+      "fellow",
+      "medical-practice",
+    ];
+  }
+  if (field === "nursing" || field === "pharmacy" || field === "allied") {
+    return [
+      "medical-student",
+      "intern",
+      "advanced-training",
+      "medical-practice",
+    ];
+  }
+  return [
+    "medical-student",
+    "intern",
+    "advanced-training",
+    "medical-practice",
+  ];
 }
 
 export function formatTrainingYearProgress(

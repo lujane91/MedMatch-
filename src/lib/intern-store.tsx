@@ -57,6 +57,11 @@ const dates = defaultInternshipDates();
 
 const defaultProfile: InternProfile = {
   fullName: "",
+  firstName: "",
+  middleName: "",
+  lastName: "",
+  dateOfBirth: "",
+  nationalId: "",
   email: "",
   mobile: "",
   trainingStage: null,
@@ -79,6 +84,7 @@ const defaultProfile: InternProfile = {
   internshipStart: dates.start,
   internshipEnd: dates.end,
   photoUploaded: false,
+  photoDataUrl: "",
   cvUploaded: false,
   identityVerified: false,
   onboardingComplete: false,
@@ -101,6 +107,12 @@ function loadState(): InternState {
       profile: {
         ...defaultProfile,
         ...parsed.profile,
+        firstName: parsed.profile.firstName ?? defaultProfile.firstName,
+        middleName: parsed.profile.middleName ?? defaultProfile.middleName,
+        lastName: parsed.profile.lastName ?? defaultProfile.lastName,
+        dateOfBirth: parsed.profile.dateOfBirth ?? defaultProfile.dateOfBirth,
+        nationalId: parsed.profile.nationalId ?? defaultProfile.nationalId,
+        photoDataUrl: parsed.profile.photoDataUrl ?? defaultProfile.photoDataUrl,
         trainingProgramKind: parsed.profile.trainingProgramKind ?? null,
       },
       rotations: parsed.rotations ?? [],
@@ -335,10 +347,11 @@ export function InternProvider({ children }: { children: ReactNode }) {
   );
 
   const firstName = useMemo(() => {
+    if (state.profile.firstName.trim()) return state.profile.firstName.trim();
     const name = state.profile.fullName.trim();
     if (!name) return "Intern";
     return name.split(/\s+/)[0] ?? "Intern";
-  }, [state.profile.fullName]);
+  }, [state.profile.firstName, state.profile.fullName]);
 
   const value: InternStore = {
     ...state,

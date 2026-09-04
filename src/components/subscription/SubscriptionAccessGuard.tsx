@@ -34,7 +34,7 @@ export function SubscriptionAccessGuard({
     }
 
     if (!profile.onboardingComplete) {
-      router.replace("/onboarding/applying-for");
+      router.replace("/create-account");
       return;
     }
 

@@ -23,7 +23,7 @@ export default function CompleteSubscriptionPage() {
   useEffect(() => {
     if (!internHydrated || !hydrated) return;
     if (!profile.onboardingComplete) {
-      router.replace("/onboarding/applying-for");
+      router.replace("/create-account");
       return;
     }
     if (canAccessDashboard) {

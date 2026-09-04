@@ -160,7 +160,7 @@ export default function HomePage() {
               </p>
             </div>
             <div className="landing-fade-up landing-delay-1 landing-hero-ctas">
-              <Link href="/onboarding/applying-for" className="landing-btn landing-btn-primary">
+              <Link href="/create-account" className="landing-btn landing-btn-primary">
                 Create Account
                 <ArrowRight size={16} strokeWidth={2.25} />
               </Link>
@@ -317,7 +317,7 @@ export default function HomePage() {
                 onDark
               />
               <div className="mt-8 flex justify-center">
-                <Link href="/onboarding/applying-for" className="landing-btn landing-btn-light">
+                <Link href="/create-account" className="landing-btn landing-btn-light">
                   Create Your Profile
                   <ArrowRight size={16} strokeWidth={2.25} />
                 </Link>
