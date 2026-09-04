@@ -21,6 +21,7 @@ import { ResearchProvider } from "@/lib/research-store";
 import { CourseProvider } from "@/lib/course-store";
 import { ConferenceProvider } from "@/lib/conference-store";
 import { CareerProvider } from "@/lib/career-store";
+import { ProfileEnrichmentProvider } from "@/lib/profile-enrichment-store";
 import "./globals.css";
 import "@/components/demo/demo.css";
 
@@ -94,23 +95,25 @@ export default function RootLayout({
                     <CourseProvider>
                       <ConferenceProvider>
                         <CareerProvider>
-                          <PlatformSubscriptionPlanProvider>
-                            <PlatformDirectoryProvider>
-                              <SubscriptionProvider>
-                                <HospitalProvider>
-                                  <HospitalSettingsProvider>
-                                    <EvaluationProvider>
-                                      <HospitalMonthProvider>
-                                        <DashboardFilterProvider>
-                                          {children}
-                                        </DashboardFilterProvider>
-                                      </HospitalMonthProvider>
-                                    </EvaluationProvider>
-                                  </HospitalSettingsProvider>
-                                </HospitalProvider>
-                              </SubscriptionProvider>
-                            </PlatformDirectoryProvider>
-                          </PlatformSubscriptionPlanProvider>
+                          <ProfileEnrichmentProvider>
+                            <PlatformSubscriptionPlanProvider>
+                              <PlatformDirectoryProvider>
+                                <SubscriptionProvider>
+                                  <HospitalProvider>
+                                    <HospitalSettingsProvider>
+                                      <EvaluationProvider>
+                                        <HospitalMonthProvider>
+                                          <DashboardFilterProvider>
+                                            {children}
+                                          </DashboardFilterProvider>
+                                        </HospitalMonthProvider>
+                                      </EvaluationProvider>
+                                    </HospitalSettingsProvider>
+                                  </HospitalProvider>
+                                </SubscriptionProvider>
+                              </PlatformDirectoryProvider>
+                            </PlatformSubscriptionPlanProvider>
+                          </ProfileEnrichmentProvider>
                         </CareerProvider>
                       </ConferenceProvider>
                     </CourseProvider>
