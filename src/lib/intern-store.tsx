@@ -14,9 +14,12 @@ import {
   defaultInternshipDates,
   defaultRequirements,
   deriveStatus,
+  isAdvancedTrainingField,
+  needsProfessionalLevel,
   type ApplicationStatus,
   type HealthcareField,
   type InternProfile,
+  type ProfessionalLevel,
   type Rotation,
   type TrainingStage,
 } from "@/data/intern";
@@ -39,6 +42,7 @@ type InternStore = InternState & {
   }) => void;
   setTrainingStage: (stage: TrainingStage) => void;
   setField: (field: HealthcareField) => void;
+  setProfessionalLevel: (level: ProfessionalLevel) => void;
   completeOnboarding: (data: Partial<InternProfile>) => void;
   upsertRotation: (rotation: Rotation) => void;
   updateRotation: (id: string, patch: Partial<Rotation>) => void;
@@ -53,18 +57,42 @@ const dates = defaultInternshipDates();
 
 const defaultProfile: InternProfile = {
   fullName: "",
+  firstName: "",
+  middleName: "",
+  lastName: "",
+  dateOfBirth: "",
+  nationality: "",
+  hasSaudiIqama: null,
+  identityType: null,
+  nationalId: "",
+  passportNumber: "",
+  passportCopyDataUrl: "",
+  passportCopyFileName: "",
   email: "",
   mobile: "",
   trainingStage: null,
   field: null,
+  professionalLevel: null,
+  institutionEmail: "",
   university: "",
+  currentYear: "",
+  totalYears: "",
+  internshipYear: "",
+  trainingInstitution: "",
+  specialty: "",
+  subspecialty: "",
+  trainingProgramKind: null,
+  residencyYear: "",
+  fellowshipYear: "",
   graduationYear: String(new Date().getFullYear()),
   currentCity: "",
   preferredCities: [],
   internshipStart: dates.start,
   internshipEnd: dates.end,
   photoUploaded: false,
+  photoDataUrl: "",
   cvUploaded: false,
+  identityVerified: false,
   onboardingComplete: false,
 };
 
@@ -82,7 +110,29 @@ function loadState(): InternState {
     if (!raw) return defaultState;
     const parsed = JSON.parse(raw) as InternState;
     return {
-      profile: { ...defaultProfile, ...parsed.profile },
+      profile: {
+        ...defaultProfile,
+        ...parsed.profile,
+        firstName: parsed.profile.firstName ?? defaultProfile.firstName,
+        middleName: parsed.profile.middleName ?? defaultProfile.middleName,
+        lastName: parsed.profile.lastName ?? defaultProfile.lastName,
+        dateOfBirth: parsed.profile.dateOfBirth ?? defaultProfile.dateOfBirth,
+        nationality: parsed.profile.nationality ?? defaultProfile.nationality,
+        hasSaudiIqama:
+          parsed.profile.hasSaudiIqama ?? defaultProfile.hasSaudiIqama,
+        identityType: parsed.profile.identityType ?? defaultProfile.identityType,
+        nationalId: parsed.profile.nationalId ?? defaultProfile.nationalId,
+        passportNumber:
+          parsed.profile.passportNumber ?? defaultProfile.passportNumber,
+        passportCopyDataUrl:
+          parsed.profile.passportCopyDataUrl ??
+          defaultProfile.passportCopyDataUrl,
+        passportCopyFileName:
+          parsed.profile.passportCopyFileName ??
+          defaultProfile.passportCopyFileName,
+        photoDataUrl: parsed.profile.photoDataUrl ?? defaultProfile.photoDataUrl,
+        trainingProgramKind: parsed.profile.trainingProgramKind ?? null,
+      },
       rotations: parsed.rotations ?? [],
     };
   } catch {
@@ -135,6 +185,7 @@ export function InternProvider({ children }: { children: ReactNode }) {
           fullName: data.fullName,
           email: data.email,
           mobile: data.mobile,
+          identityVerified: false,
           onboardingComplete: false,
         },
       }));
@@ -143,16 +194,57 @@ export function InternProvider({ children }: { children: ReactNode }) {
   );
 
   const setTrainingStage = useCallback((stage: TrainingStage) => {
-    setState((prev) => ({
-      ...prev,
-      profile: { ...prev.profile, trainingStage: stage },
-    }));
+    setState((prev) => {
+      const fieldStillValid =
+        stage !== "advanced-training" ||
+        isAdvancedTrainingField(prev.profile.field);
+      return {
+        ...prev,
+        profile: {
+          ...prev.profile,
+          trainingStage: stage,
+          professionalLevel:
+            stage === "medical-practice"
+              ? prev.profile.professionalLevel
+              : null,
+          field: fieldStillValid ? prev.profile.field : null,
+          trainingProgramKind:
+            stage === "advanced-training"
+              ? prev.profile.trainingProgramKind
+              : null,
+        },
+      };
+    });
   }, []);
 
   const setField = useCallback((field: HealthcareField) => {
+    setState((prev) => {
+      if (
+        prev.profile.trainingStage === "advanced-training" &&
+        !isAdvancedTrainingField(field)
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        profile: {
+          ...prev.profile,
+          field,
+          professionalLevel: needsProfessionalLevel(
+            prev.profile.trainingStage,
+            field,
+          )
+            ? prev.profile.professionalLevel
+            : null,
+        },
+      };
+    });
+  }, []);
+
+  const setProfessionalLevel = useCallback((level: ProfessionalLevel) => {
     setState((prev) => ({
       ...prev,
-      profile: { ...prev.profile, field },
+      profile: { ...prev.profile, professionalLevel: level },
     }));
   }, []);
 
@@ -162,7 +254,8 @@ export function InternProvider({ children }: { children: ReactNode }) {
       profile: {
         ...prev.profile,
         ...data,
-        trainingStage: "intern",
+        trainingStage:
+          data.trainingStage ?? prev.profile.trainingStage ?? "intern",
         onboardingComplete: true,
       },
     }));
@@ -272,10 +365,11 @@ export function InternProvider({ children }: { children: ReactNode }) {
   );
 
   const firstName = useMemo(() => {
+    if (state.profile.firstName.trim()) return state.profile.firstName.trim();
     const name = state.profile.fullName.trim();
     if (!name) return "Intern";
     return name.split(/\s+/)[0] ?? "Intern";
-  }, [state.profile.fullName]);
+  }, [state.profile.firstName, state.profile.fullName]);
 
   const value: InternStore = {
     ...state,
@@ -284,6 +378,7 @@ export function InternProvider({ children }: { children: ReactNode }) {
     setAccountBasics,
     setTrainingStage,
     setField,
+    setProfessionalLevel,
     completeOnboarding,
     upsertRotation,
     updateRotation,

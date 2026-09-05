@@ -15,6 +15,13 @@ import { PlatformDirectoryProvider } from "@/lib/platform-directory-store";
 import { PlatformSubscriptionPlanProvider } from "@/lib/platform-subscription-plan-store";
 import { RoleProvider } from "@/lib/role-store";
 import { SubscriptionProvider } from "@/lib/subscription-store";
+import { TrainingApplicationProvider } from "@/lib/training-application-store";
+import { MedJourneyNotificationProvider } from "@/lib/medjourney-notification-store";
+import { ResearchProvider } from "@/lib/research-store";
+import { CourseProvider } from "@/lib/course-store";
+import { ConferenceProvider } from "@/lib/conference-store";
+import { CareerProvider } from "@/lib/career-store";
+import { ProfileEnrichmentProvider } from "@/lib/profile-enrichment-store";
 import "./globals.css";
 import "@/components/demo/demo.css";
 
@@ -82,23 +89,37 @@ export default function RootLayout({
         <DemoModeProvider>
           <RoleProvider>
             <InternProvider>
-              <PlatformSubscriptionPlanProvider>
-                <PlatformDirectoryProvider>
-                  <SubscriptionProvider>
-                    <HospitalProvider>
-                      <HospitalSettingsProvider>
-                        <EvaluationProvider>
-                          <HospitalMonthProvider>
-                            <DashboardFilterProvider>
-                              {children}
-                            </DashboardFilterProvider>
-                          </HospitalMonthProvider>
-                        </EvaluationProvider>
-                      </HospitalSettingsProvider>
-                    </HospitalProvider>
-                  </SubscriptionProvider>
-                </PlatformDirectoryProvider>
-              </PlatformSubscriptionPlanProvider>
+              <TrainingApplicationProvider>
+                <MedJourneyNotificationProvider>
+                  <ResearchProvider>
+                    <CourseProvider>
+                      <ConferenceProvider>
+                        <CareerProvider>
+                          <ProfileEnrichmentProvider>
+                            <PlatformSubscriptionPlanProvider>
+                              <PlatformDirectoryProvider>
+                                <SubscriptionProvider>
+                                  <HospitalProvider>
+                                    <HospitalSettingsProvider>
+                                      <EvaluationProvider>
+                                        <HospitalMonthProvider>
+                                          <DashboardFilterProvider>
+                                            {children}
+                                          </DashboardFilterProvider>
+                                        </HospitalMonthProvider>
+                                      </EvaluationProvider>
+                                    </HospitalSettingsProvider>
+                                  </HospitalProvider>
+                                </SubscriptionProvider>
+                              </PlatformDirectoryProvider>
+                            </PlatformSubscriptionPlanProvider>
+                          </ProfileEnrichmentProvider>
+                        </CareerProvider>
+                      </ConferenceProvider>
+                    </CourseProvider>
+                  </ResearchProvider>
+                </MedJourneyNotificationProvider>
+              </TrainingApplicationProvider>
             </InternProvider>
           </RoleProvider>
         </DemoModeProvider>

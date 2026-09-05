@@ -23,7 +23,7 @@ export default function CompleteSubscriptionPage() {
   useEffect(() => {
     if (!internHydrated || !hydrated) return;
     if (!profile.onboardingComplete) {
-      router.replace("/onboarding/applying-for");
+      router.replace("/create-account");
       return;
     }
     if (canAccessDashboard) {
@@ -48,11 +48,11 @@ export default function CompleteSubscriptionPage() {
   return (
     <SubscriptionShell
       title="Complete Your Subscription"
-      subtitle="Finish payment to activate your internship account."
+      subtitle="Finish payment to activate your MedJourney account."
     >
       <div className="rounded-[var(--mm-radius-xl)] border border-mm-border bg-mm-surface p-5 shadow-mm-sm sm:p-6">
         <p className="font-[family-name:var(--mm-font-display)] text-2xl font-semibold text-mm-navy">
-          {formatSar(plan.price)} annual subscription
+          {formatSar(plan.price)} monthly subscription
         </p>
         <dl className="mt-5 space-y-3 border-t border-mm-border pt-5">
           <div className="flex items-center justify-between gap-3">

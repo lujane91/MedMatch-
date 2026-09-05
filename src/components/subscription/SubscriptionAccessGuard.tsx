@@ -28,13 +28,22 @@ export function SubscriptionAccessGuard({
   useEffect(() => {
     if (!ready) return;
 
+    // DEMO-only direct preview routes may bootstrap access themselves.
+    if (
+      pathname.startsWith("/demo/internship-year") ||
+      pathname.startsWith("/demo/external-rotations-resident") ||
+      pathname.startsWith("/demo/external-rotations-fellow")
+    ) {
+      return;
+    }
+
     if (!profile.fullName || !profile.email) {
       router.replace("/sign-in");
       return;
     }
 
     if (!profile.onboardingComplete) {
-      router.replace("/onboarding/applying-for");
+      router.replace("/create-account");
       return;
     }
 
@@ -66,7 +75,12 @@ export function SubscriptionAccessGuard({
     );
   }
 
-  if (!profile.onboardingComplete || !canAccessDashboard) {
+  if (
+    !pathname.startsWith("/demo/internship-year") &&
+    !pathname.startsWith("/demo/external-rotations-resident") &&
+    !pathname.startsWith("/demo/external-rotations-fellow") &&
+    (!profile.onboardingComplete || !canAccessDashboard)
+  ) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-mm-bg px-4">
         <p className="text-sm text-mm-text-muted">Checking subscription…</p>

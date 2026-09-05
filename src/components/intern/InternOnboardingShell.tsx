@@ -9,7 +9,7 @@ import "@/components/onboarding/onboarding.css";
 const steps = [
   { id: "stage", path: "/onboarding/applying-for", label: "Pathway" },
   { id: "field", path: "/onboarding/profession", label: "Profession" },
-  { id: "review", path: "/onboarding/review", label: "Review" },
+  { id: "level", path: "/onboarding/professional-level", label: "Level" },
 ] as const;
 
 type InternOnboardingShellProps = {

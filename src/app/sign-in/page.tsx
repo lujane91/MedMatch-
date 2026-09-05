@@ -34,7 +34,7 @@ export default function SignInPage() {
       profile.onboardingComplete && profile.field === "medicine";
 
     if (!onboardingDone) {
-      router.push("/onboarding/applying-for");
+      router.push("/create-account");
       return;
     }
 

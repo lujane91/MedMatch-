@@ -6,7 +6,33 @@ export type HealthcareField =
   | "allied"
   | "other";
 
-export type TrainingStage = "intern" | "residency" | "fellowship";
+export type TrainingStage =
+  | "medical-student"
+  | "intern"
+  | "advanced-training"
+  | "resident"
+  | "fellow"
+  | "medical-practice"
+  | "residency"
+  | "fellowship";
+
+/** Flexible postgraduate program kinds for non physician pathways. */
+export type TrainingProgramKind =
+  | "advanced-training"
+  | "professional-training"
+  | "postgraduate-training"
+  | "clinical-diploma"
+  | "specialty-training";
+
+export const ADVANCED_TRAINING_FIELDS = [
+  "nursing",
+  "pharmacy",
+  "allied",
+] as const satisfies readonly HealthcareField[];
+
+export type AdvancedTrainingField = (typeof ADVANCED_TRAINING_FIELDS)[number];
+
+export type ProfessionalLevel = "gp" | "specialist" | "consultant";
 
 export type ApplicationStatus =
   | "Draft"
@@ -55,22 +81,97 @@ export type Rotation = {
   changesDeadline?: string;
 };
 
+/** How the user verifies identity during onboarding (prototype). */
+export type IdentityType = "national-id" | "iqama" | "passport";
+
 export type InternProfile = {
   fullName: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  dateOfBirth: string;
+  /** Country of nationality (e.g. Saudi Arabia). */
+  nationality: string;
+  /**
+   * Non-Saudi only: whether the user holds a Saudi residency permit (Iqama).
+   * null when not applicable (Saudi) or unanswered.
+   */
+  hasSaudiIqama: boolean | null;
+  /** Active identity verification route. */
+  identityType: IdentityType | null;
+  /**
+   * National ID Number (Saudi) or Iqama Number (non-Saudi with Iqama).
+   * Cleared for passport-route users.
+   */
+  nationalId: string;
+  /** Passport number for non-Saudi users without Iqama. */
+  passportNumber: string;
+  /**
+   * Prototype passport copy upload (data URL). Identity verification only —
+   * never display on dashboard, profile, or MedJourney Passport.
+   */
+  passportCopyDataUrl: string;
+  passportCopyFileName: string;
   email: string;
   mobile: string;
   trainingStage: TrainingStage | null;
   field: HealthcareField | null;
+  professionalLevel: ProfessionalLevel | null;
+  institutionEmail: string;
   university: string;
+  currentYear: string;
+  totalYears: string;
+  internshipYear: string;
+  trainingInstitution: string;
+  specialty: string;
+  subspecialty: string;
+  trainingProgramKind: TrainingProgramKind | null;
+  residencyYear: string;
+  fellowshipYear: string;
   graduationYear: string;
   currentCity: string;
   preferredCities: string[];
   internshipStart: string;
   internshipEnd: string;
   photoUploaded: boolean;
+  /** Prototype photo preview (data URL). Future: cloud storage. */
+  photoDataUrl: string;
   cvUploaded: boolean;
+  identityVerified: boolean;
   onboardingComplete: boolean;
 };
+
+/** Resolve Nafath vs passport identity route from nationality + Iqama answers. */
+export function resolveIdentityRoute(
+  nationality: string | null | undefined,
+  hasSaudiIqama: boolean | null | undefined,
+): { requiresNafath: boolean; identityType: IdentityType | null } {
+  const nation = nationality?.trim() ?? "";
+  if (!nation) return { requiresNafath: false, identityType: null };
+  if (nation === "Saudi Arabia") {
+    return { requiresNafath: true, identityType: "national-id" };
+  }
+  if (hasSaudiIqama === true) {
+    return { requiresNafath: true, identityType: "iqama" };
+  }
+  if (hasSaudiIqama === false) {
+    return { requiresNafath: false, identityType: "passport" };
+  }
+  return { requiresNafath: false, identityType: null };
+}
+
+export function requiresNafathVerification(
+  profile: Pick<InternProfile, "identityType" | "nationality" | "hasSaudiIqama">,
+) {
+  if (profile.identityType) {
+    return (
+      profile.identityType === "national-id" ||
+      profile.identityType === "iqama"
+    );
+  }
+  return resolveIdentityRoute(profile.nationality, profile.hasSaudiIqama)
+    .requiresNafath;
+}
 
 export const healthcareFields: {
   id: HealthcareField;
@@ -328,6 +429,126 @@ export function defaultInternshipDates(reference = new Date()) {
 
 export function fieldLabel(field: HealthcareField | null) {
   return healthcareFields.find((f) => f.id === field)?.title ?? "Healthcare";
+}
+
+export function isAdvancedTrainingField(
+  field: HealthcareField | null | undefined,
+): field is AdvancedTrainingField {
+  return (
+    field === "nursing" || field === "pharmacy" || field === "allied"
+  );
+}
+
+export function needsProfessionalLevel(
+  stage: TrainingStage | null | undefined,
+  field: HealthcareField | null | undefined,
+) {
+  return (
+    stage === "medical-practice" &&
+    (field === "medicine" || field === "dentistry")
+  );
+}
+
+export function trainingStageLabel(stage: TrainingStage | null | undefined) {
+  switch (stage) {
+    case "medical-student":
+      return "Medical Student";
+    case "intern":
+      return "Intern";
+    case "advanced-training":
+      return "Advanced Training";
+    case "resident":
+    case "residency":
+      return "Resident";
+    case "fellow":
+    case "fellowship":
+      return "Fellow";
+    case "medical-practice":
+      return "Medical Practice";
+    default:
+      return "";
+  }
+}
+
+export function professionalLevelLabel(
+  level: ProfessionalLevel | null | undefined,
+) {
+  switch (level) {
+    case "gp":
+      return "General Practitioner";
+    case "specialist":
+      return "Specialist";
+    case "consultant":
+      return "Consultant";
+    default:
+      return "";
+  }
+}
+
+/** Compose display name from structured name parts. */
+export function composeFullName(
+  firstName: string,
+  middleName: string,
+  lastName: string,
+) {
+  return [firstName, middleName, lastName]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+/**
+ * Journey Path options for Complete Your Account.
+ * Advanced Training is not offered in active onboarding.
+ */
+export function journeyPathsForField(
+  field: HealthcareField | null,
+): TrainingStage[] {
+  if (!field) return [];
+  return [
+    "medical-student",
+    "intern",
+    "resident",
+    "fellow",
+    "medical-practice",
+  ];
+}
+
+export function formatTrainingYearProgress(
+  currentYear: string | null | undefined,
+  totalYears: string | null | undefined,
+) {
+  const current = currentYear?.trim();
+  const total = totalYears?.trim();
+  if (!current || !total) return "";
+  return `Year ${current} of ${total}`;
+}
+
+export function getPassportFacts(profile: InternProfile) {
+  const facts: string[] = [];
+  if (profile.field) {
+    facts.push(fieldLabel(profile.field));
+  }
+  const level = professionalLevelLabel(profile.professionalLevel);
+  if (level) {
+    facts.push(level);
+  } else {
+    const stage = trainingStageLabel(profile.trainingStage);
+    if (stage) facts.push(stage);
+  }
+  const program = profile.specialty?.trim();
+  if (program) facts.push(program);
+  const subspecialty = profile.subspecialty?.trim();
+  if (subspecialty) facts.push(subspecialty);
+  const year = formatTrainingYearProgress(
+    profile.currentYear,
+    profile.totalYears,
+  );
+  if (year) facts.push(year);
+  const institution =
+    profile.trainingInstitution?.trim() || profile.university?.trim();
+  if (institution) facts.push(institution);
+  return facts;
 }
 
 export function hospitalById(id: string) {
