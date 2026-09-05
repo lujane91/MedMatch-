@@ -29,7 +29,11 @@ export function SubscriptionAccessGuard({
     if (!ready) return;
 
     // DEMO-only direct preview routes may bootstrap access themselves.
-    if (pathname.startsWith("/demo/internship-year")) {
+    if (
+      pathname.startsWith("/demo/internship-year") ||
+      pathname.startsWith("/demo/external-rotations-resident") ||
+      pathname.startsWith("/demo/external-rotations-fellow")
+    ) {
       return;
     }
 
@@ -73,6 +77,8 @@ export function SubscriptionAccessGuard({
 
   if (
     !pathname.startsWith("/demo/internship-year") &&
+    !pathname.startsWith("/demo/external-rotations-resident") &&
+    !pathname.startsWith("/demo/external-rotations-fellow") &&
     (!profile.onboardingComplete || !canAccessDashboard)
   ) {
     return (

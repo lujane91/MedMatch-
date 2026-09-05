@@ -33,6 +33,7 @@ export type TrainingApplicationStatus =
   | "Accepted"
   | "Declined"
   | "Alternative Month Proposed"
+  | "Additional Information Requested"
   | "Student Confirmed"
   | "Student Declined"
   | "Completed";
@@ -69,8 +70,14 @@ export type TrainingApplication = {
   healthcareField: HealthcareField | null;
   hospital: string;
   city: string;
+  /** Country for the rotation site (defaults to Saudi Arabia when omitted). */
+  country?: string;
   specialty: string;
   subspecialty: string;
+  /** Free-text niche focus (e.g. Advanced echocardiography, ECMO). */
+  trainingFocus?: string;
+  /** Posted listing vs custom hospital request. */
+  requestOrigin?: "posted" | "custom-request";
   month: string;
   startDate: string;
   endDate: string;
@@ -134,6 +141,7 @@ export function nextPaymentStatusAfterDecision(
     applicationStatus === "Under Review" ||
     applicationStatus === "Submitted" ||
     applicationStatus === "Alternative Month Proposed" ||
+    applicationStatus === "Additional Information Requested" ||
     applicationStatus === "Student Confirmed"
   ) {
     return current;
@@ -208,11 +216,16 @@ export type DirectTrainingApplicationInput = {
   trainingType: TrainingApplicationType;
   hospital: string;
   city: string;
+  country?: string;
   specialty: string;
+  subspecialty?: string;
+  trainingFocus?: string;
   month: string;
   startDate: string;
   endDate: string;
   documents: ApplicationDocumentLink[];
+  /** When false, caller still needs mock payment before treating as paid. */
+  markPaid?: boolean;
 };
 
 function documentTotals(documents: ApplicationDocumentLink[]) {
@@ -249,8 +262,11 @@ export function buildTrainingApplication(
     healthcareField: input.healthcareField,
     hospital: opportunity.hospital,
     city: opportunity.city,
+    country: opportunity.country || "Saudi Arabia",
     specialty: opportunity.specialty,
     subspecialty: opportunity.subspecialty,
+    trainingFocus: opportunity.trainingFocus || "",
+    requestOrigin: "posted",
     month: input.month?.trim() || opportunity.month,
     startDate: input.startDate || opportunity.startDate,
     endDate: input.endDate || opportunity.endDate,
@@ -283,6 +299,7 @@ export function buildDirectTrainingApplication(
 ): TrainingApplication {
   const totals = documentTotals(input.documents);
   const now = new Date().toISOString();
+  const paid = input.markPaid !== false;
   return {
     id: createTrainingApplicationId(),
     applicantKey: input.applicantKey,
@@ -292,8 +309,11 @@ export function buildDirectTrainingApplication(
     healthcareField: input.healthcareField,
     hospital: input.hospital.trim(),
     city: input.city.trim(),
+    country: (input.country || "Saudi Arabia").trim(),
     specialty: input.specialty.trim(),
-    subspecialty: "",
+    subspecialty: (input.subspecialty || "").trim(),
+    trainingFocus: (input.trainingFocus || "").trim(),
+    requestOrigin: "custom-request",
     month: input.month.trim(),
     startDate: input.startDate,
     endDate: input.endDate,
@@ -303,8 +323,8 @@ export function buildDirectTrainingApplication(
     applicationStatus: "Submitted",
     medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
     hospitalFee: { kind: "none" },
-    feeStatus: "Paid (Demo)",
-    paymentStatus: "paid",
+    feeStatus: paid ? "Paid (Demo)" : "Pending",
+    paymentStatus: paid ? "paid" : "unpaid",
     remainingActions: [],
     evaluationReceived: false,
     certificateAvailable: false,
@@ -327,6 +347,7 @@ export function statusToneClass(status: TrainingApplicationStatus) {
     case "Under Review":
     case "Waitlisted":
     case "Alternative Month Proposed":
+    case "Additional Information Requested":
       return "bg-amber-50 text-amber-800";
     case "Declined":
     case "Student Declined":
@@ -334,13 +355,23 @@ export function statusToneClass(status: TrainingApplicationStatus) {
   }
 }
 
-/** Display label — internship uses clearer hospital-acceptance wording. */
+/** Display label — internship/external use clearer hospital-acceptance wording. */
 export function applicationStatusLabel(
   status: TrainingApplicationStatus,
   trainingType?: TrainingApplicationType | null,
 ) {
-  if (trainingType === "internship-rotation" && status === "Accepted") {
+  if (
+    (trainingType === "internship-rotation" ||
+      trainingType === "external-rotation") &&
+    status === "Accepted"
+  ) {
     return "Accepted by Hospital";
+  }
+  if (
+    trainingType === "external-rotation" &&
+    status === "Alternative Month Proposed"
+  ) {
+    return "Alternative Dates Proposed";
   }
   if (status === "Student Confirmed") return "Confirmed";
   return status;

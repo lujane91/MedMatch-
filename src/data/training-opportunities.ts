@@ -33,9 +33,13 @@ export type TrainingOpportunity = {
   trainingType: TrainingApplicationType;
   hospital: string;
   city: string;
+  /** Defaults to Saudi Arabia when omitted — keeps international rotations flexible. */
+  country?: string;
   healthcareField: HealthcareField;
   specialty: string;
   subspecialty: string;
+  /** Optional niche focus label for search (e.g. ECMO, Robotic surgery). */
+  trainingFocus?: string;
   month: string;
   startDate: string;
   endDate: string;
@@ -90,6 +94,31 @@ export const SUMMER_ELECTIVE_DOCUMENT_REQUIREMENTS: TrainingRequirement[] = [
   req("r5", "national-id", true, "National ID or Iqama"),
   req("r6", "recommendation-letter", false, "Recommendation Letter"),
 ];
+
+/** Default requirements for custom External Rotation requests. */
+export const EXTERNAL_ROTATION_DOCUMENT_REQUIREMENTS: TrainingRequirement[] = [
+  req("r1", "cv", true, "CV"),
+  req("r2", "training-program-letter", true, "Training Program Letter"),
+  req("r3", "approval-letter", true, "Hospital / University Letter"),
+  req("r4", "professional-registration", true, "Professional Registration"),
+  req("r5", "national-id", true, "National ID or Iqama"),
+  req("r6", "recommendation-letter", false, "Recommendation Letter"),
+  req("r7", "vaccination-record", false, "Vaccination Record"),
+  req("r8", "health-clearance", false, "Health Clearance"),
+];
+
+export function externalRotationRequirementsForCountry(
+  country: string,
+): TrainingRequirement[] {
+  const base = EXTERNAL_ROTATION_DOCUMENT_REQUIREMENTS;
+  if (!country.trim() || country.trim() === "Saudi Arabia") {
+    return base;
+  }
+  return [
+    ...base,
+    req("r9", "passport", true, "Passport"),
+  ];
+}
 
 export function monthNameFromIsoDate(iso: string) {
   const monthIndex = Number(iso.slice(5, 7)) - 1;
@@ -441,15 +470,17 @@ export const SEED_TRAINING_OPPORTUNITIES: TrainingOpportunity[] = [
     status: "Open",
   },
 
-  // Resident — External Rotations
+  // Resident — External Rotations (niche — keep list intentionally small)
   {
     id: "opp-re-kfshrc-trauma",
     trainingType: "external-rotation",
     hospital: KFSHRC,
     city: hospitalCity(KFSHRC),
+    country: "Saudi Arabia",
     healthcareField: "medicine",
     specialty: "General Surgery",
     subspecialty: "Trauma Surgery",
+    trainingFocus: "Advanced trauma and damage control surgery",
     month: "November",
     startDate: "2026-11-01",
     endDate: "2026-11-30",
@@ -457,11 +488,11 @@ export const SEED_TRAINING_OPPORTUNITIES: TrainingOpportunity[] = [
     availableSpots: 2,
     applicationDeadline: "2026-09-15",
     medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
-    hospitalFee: { kind: "fee", amountSar: 200 },
+    hospitalFee: { kind: "none" },
     requirements: [
       req("r1", "cv", true, "CV"),
       req("r2", "training-program-letter", true, "Training Program Letter"),
-      req("r3", "approval-letter", true, "Approval Letter"),
+      req("r3", "approval-letter", true, "Hospital / University Letter"),
       req("r4", "professional-registration", true, "Professional Registration"),
       req("r5", "recommendation-letter", true, "Recommendation Letter"),
     ],
@@ -474,9 +505,11 @@ export const SEED_TRAINING_OPPORTUNITIES: TrainingOpportunity[] = [
     trainingType: "external-rotation",
     hospital: HMG,
     city: hospitalCity(HMG),
+    country: "Saudi Arabia",
     healthcareField: "medicine",
     specialty: "Emergency Medicine",
     subspecialty: "",
+    trainingFocus: "Complex airway management",
     month: "January",
     startDate: "2027-01-05",
     endDate: "2027-01-30",
@@ -488,12 +521,70 @@ export const SEED_TRAINING_OPPORTUNITIES: TrainingOpportunity[] = [
     requirements: [
       req("r1", "cv", true, "CV"),
       req("r2", "training-program-letter", true, "Training Program Letter"),
-      req("r3", "approval-letter", true, "Approval Letter"),
+      req("r3", "approval-letter", true, "Hospital / University Letter"),
       req("r4", "professional-registration", true, "Professional Registration"),
       req("r5", "additional-hospital-document", false, "Additional Hospital Document"),
     ],
     description:
       "External emergency medicine rotation with flexible January dates.",
+    status: "Open",
+  },
+  {
+    id: "opp-re-kfmc-neuroicu",
+    trainingType: "external-rotation",
+    hospital: KFMC,
+    city: hospitalCity(KFMC),
+    country: "Saudi Arabia",
+    healthcareField: "medicine",
+    specialty: "Anesthesiology",
+    subspecialty: "Critical Care Anesthesia",
+    trainingFocus: "Neurocritical care",
+    month: "February",
+    startDate: "2027-02-01",
+    endDate: "2027-02-28",
+    datesFixed: true,
+    availableSpots: 1,
+    applicationDeadline: "2026-11-20",
+    medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
+    hospitalFee: { kind: "none" },
+    requirements: [
+      req("r1", "cv", true, "CV"),
+      req("r2", "training-program-letter", true, "Training Program Letter"),
+      req("r3", "approval-letter", true, "Hospital / University Letter"),
+      req("r4", "professional-registration", true, "Professional Registration"),
+      req("r5", "health-clearance", true, "Health Clearance"),
+    ],
+    description:
+      "Resident external rotation focused on neurocritical care pathways.",
+    status: "Open",
+  },
+  {
+    id: "opp-re-ngha-peds-anes",
+    trainingType: "external-rotation",
+    hospital: NGHA_RIYADH,
+    city: hospitalCity(NGHA_RIYADH),
+    country: "Saudi Arabia",
+    healthcareField: "medicine",
+    specialty: "Anesthesiology",
+    subspecialty: "Pediatric Anesthesia",
+    trainingFocus: "Pediatric cardiac anesthesia",
+    month: "April",
+    startDate: "2027-04-04",
+    endDate: "2027-04-29",
+    datesFixed: true,
+    availableSpots: 2,
+    applicationDeadline: "2027-01-15",
+    medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
+    hospitalFee: { kind: "none" },
+    requirements: [
+      req("r1", "cv", true, "CV"),
+      req("r2", "training-program-letter", true, "Training Program Letter"),
+      req("r3", "approval-letter", true, "Hospital / University Letter"),
+      req("r4", "professional-registration", true, "Professional Registration"),
+      req("r5", "recommendation-letter", true, "Recommendation Letter"),
+    ],
+    description:
+      "Pediatric cardiac anesthesia exposure for senior residents.",
     status: "Open",
   },
 
@@ -503,9 +594,11 @@ export const SEED_TRAINING_OPPORTUNITIES: TrainingOpportunity[] = [
     trainingType: "external-rotation",
     hospital: KFSHRC,
     city: hospitalCity(KFSHRC),
+    country: "Saudi Arabia",
     healthcareField: "medicine",
     specialty: "Cardiology",
     subspecialty: "Advanced Heart Failure",
+    trainingFocus: "Heart failure service",
     month: "January",
     startDate: "2027-01-04",
     endDate: "2027-01-29",
@@ -513,11 +606,11 @@ export const SEED_TRAINING_OPPORTUNITIES: TrainingOpportunity[] = [
     availableSpots: 2,
     applicationDeadline: "2026-10-15",
     medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
-    hospitalFee: { kind: "fee", amountSar: 250 },
+    hospitalFee: { kind: "none" },
     requirements: [
       req("r1", "cv", true, "CV"),
       req("r2", "training-program-letter", true, "Training Program Letter"),
-      req("r3", "approval-letter", true, "Approval Letter"),
+      req("r3", "approval-letter", true, "Hospital / University Letter"),
       req("r4", "professional-registration", true, "Professional Registration"),
       req("r5", "recommendation-letter", true, "Recommendation Letter"),
       req("r6", "additional-hospital-document", true, "Additional Hospital Document"),
@@ -531,9 +624,11 @@ export const SEED_TRAINING_OPPORTUNITIES: TrainingOpportunity[] = [
     trainingType: "external-rotation",
     hospital: NGHA_RIYADH,
     city: hospitalCity(NGHA_RIYADH),
+    country: "Saudi Arabia",
     healthcareField: "medicine",
     specialty: "Cardiology",
     subspecialty: "Interventional Cardiology",
+    trainingFocus: "Interventional cardiology",
     month: "March",
     startDate: "2027-03-01",
     endDate: "2027-03-26",
@@ -545,12 +640,71 @@ export const SEED_TRAINING_OPPORTUNITIES: TrainingOpportunity[] = [
     requirements: [
       req("r1", "cv", true, "CV"),
       req("r2", "training-program-letter", true, "Training Program Letter"),
-      req("r3", "approval-letter", true, "Approval Letter"),
+      req("r3", "approval-letter", true, "Hospital / University Letter"),
       req("r4", "professional-registration", true, "Professional Registration"),
       req("r5", "recommendation-letter", false, "Recommendation Letter"),
     ],
     description:
       "Interventional cardiology external rotation for fellows.",
+    status: "Open",
+  },
+  {
+    id: "opp-fe-kfshrc-echo",
+    trainingType: "external-rotation",
+    hospital: KFSHRC,
+    city: hospitalCity(KFSHRC),
+    country: "Saudi Arabia",
+    healthcareField: "medicine",
+    specialty: "Cardiology",
+    subspecialty: "Advanced Heart Failure",
+    trainingFocus: "Advanced echocardiography",
+    month: "May",
+    startDate: "2027-05-02",
+    endDate: "2027-05-27",
+    datesFixed: true,
+    availableSpots: 2,
+    applicationDeadline: "2027-02-01",
+    medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
+    hospitalFee: { kind: "none" },
+    requirements: [
+      req("r1", "cv", true, "CV"),
+      req("r2", "training-program-letter", true, "Training Program Letter"),
+      req("r3", "approval-letter", true, "Hospital / University Letter"),
+      req("r4", "professional-registration", true, "Professional Registration"),
+      req("r5", "recommendation-letter", true, "Recommendation Letter"),
+    ],
+    description:
+      "Advanced echocardiography rotation for cardiology fellows.",
+    status: "Open",
+  },
+  {
+    id: "opp-fe-ksumc-transplant",
+    trainingType: "external-rotation",
+    hospital: KSUMC,
+    city: hospitalCity(KSUMC),
+    country: "Saudi Arabia",
+    healthcareField: "medicine",
+    specialty: "General Surgery",
+    subspecialty: "Transplant Surgery",
+    trainingFocus: "Liver transplant surgery",
+    month: "June",
+    startDate: "2027-06-01",
+    endDate: "2027-06-30",
+    datesFixed: true,
+    availableSpots: 1,
+    applicationDeadline: "2027-03-01",
+    medjourneyApplicationFeeSar: MEDJOURNEY_APPLICATION_FEE_SAR,
+    hospitalFee: { kind: "none" },
+    requirements: [
+      req("r1", "cv", true, "CV"),
+      req("r2", "training-program-letter", true, "Training Program Letter"),
+      req("r3", "approval-letter", true, "Hospital / University Letter"),
+      req("r4", "professional-registration", true, "Professional Registration"),
+      req("r5", "health-clearance", true, "Health Clearance"),
+      req("r6", "vaccination-record", true, "Vaccination Record"),
+    ],
+    description:
+      "Liver transplant surgery exposure for surgical fellows.",
     status: "Open",
   },
 ];

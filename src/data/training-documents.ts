@@ -8,6 +8,7 @@ export type TrainingDocumentType =
   | "university-letter"
   | "academic-transcript"
   | "national-id"
+  | "passport"
   | "vaccination-record"
   | "health-clearance"
   | "professional-registration"
@@ -34,13 +35,14 @@ export const DOCUMENT_TYPE_LABELS: Record<TrainingDocumentType, string> = {
   "university-letter": "University Letter",
   "academic-transcript": "Academic Transcript",
   "national-id": "National ID or Iqama",
+  passport: "Passport",
   "vaccination-record": "Vaccination Record",
   "health-clearance": "Health Clearance",
   "professional-registration": "Professional Registration",
   "recommendation-letter": "Recommendation Letter",
   "internship-letter": "Internship Letter",
   "training-program-letter": "Training Program Letter",
-  "approval-letter": "Approval Letter",
+  "approval-letter": "Hospital / University Letter",
   "additional-hospital-document": "Additional Hospital Document",
 };
 
